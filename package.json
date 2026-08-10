@@ -1,0 +1,41 @@
+{
+  "name": "msbv",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MSBV — fantasy football season companion: ESPN + Yahoo league sync, draft tools, lineups, waivers, trades",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/web",
+    "build": "vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "concurrently -n api,web -c blue,green \"tsx watch src/server/main.ts\" \"vite dev\"",
+    "start": "tsx src/server/main.ts",
+    "sync": "tsx src/server/sync/run.ts",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.2",
+    "@fastify/static": "^10.1.2",
+    "fastify": "^5.4.0",
+    "tsx": "^4.20.3",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.0",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "concurrently": "^9.1.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.1",
+    "typescript": "^5.8.3",
+    "vite": "^8.1.5",
+    "vitest": "^3.2.4"
+  }
+}

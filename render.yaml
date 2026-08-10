@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: msbv
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: APP_PASSWORD
+        sync: false
+      - key: BASE_URL
+        sync: false
+      - key: ESPN_LEAGUE_ID
+        sync: false
+      - key: ESPN_S2
+        sync: false
+      - key: ESPN_SWID
+        sync: false
+      - key: YAHOO_CLIENT_ID
+        sync: false
+      - key: YAHOO_CLIENT_SECRET
+        sync: false
+      - key: YAHOO_REFRESH_TOKEN
+        sync: false
+      - key: YAHOO_LEAGUE_KEY
+        sync: false

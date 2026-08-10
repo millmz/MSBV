@@ -1,0 +1,117 @@
+:root {
+  --bg: #0b1410;
+  --panel: #121d17;
+  --panel-2: #18261e;
+  --line: #24382c;
+  --text: #e8f1ea;
+  --muted: #8fa89a;
+  --accent: #35d07f;
+  --accent-dim: #1e7a4c;
+  --warn: #f2b134;
+  --bad: #e3574b;
+  --good: #35d07f;
+  --radius: 10px;
+  font-size: 16px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); text-decoration: none; }
+
+.app { display: flex; flex-direction: column; min-height: 100dvh; }
+
+.topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar .brand { font-weight: 800; letter-spacing: 0.5px; }
+.topbar .brand span { color: var(--accent); }
+
+.league-toggle { margin-left: auto; display: flex; gap: 6px; }
+.league-toggle button {
+  background: var(--panel-2); color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 12px; font-size: 0.85rem; cursor: pointer;
+}
+.league-toggle button.active { color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 700; }
+
+.content { flex: 1; padding: 16px; max-width: 900px; width: 100%; margin: 0 auto; padding-bottom: 84px; }
+
+.tabbar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; justify-content: space-around;
+  background: var(--panel); border-top: 1px solid var(--line);
+  padding: 6px 0 max(6px, env(safe-area-inset-bottom));
+  z-index: 10;
+}
+.tabbar a {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  color: var(--muted); font-size: 0.68rem; padding: 4px 8px; min-width: 56px;
+}
+.tabbar a.active { color: var(--accent); }
+.tabbar .icon { font-size: 1.25rem; line-height: 1; }
+
+.card {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px;
+}
+.card h2 { margin: 0 0 10px; font-size: 1rem; }
+.card h3 { margin: 12px 0 6px; font-size: 0.9rem; color: var(--muted); }
+
+.muted { color: var(--muted); }
+.good { color: var(--good); }
+.bad { color: var(--bad); }
+.warn { color: var(--warn); }
+
+button.primary {
+  background: var(--accent); color: #06130c; border: none;
+  border-radius: 8px; padding: 10px 16px; font-weight: 700; font-size: 0.95rem;
+  cursor: pointer;
+}
+button.primary:disabled { opacity: 0.5; cursor: default; }
+button.ghost {
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--accent-dim); border-radius: 8px;
+  padding: 8px 14px; cursor: pointer; font-size: 0.9rem;
+}
+
+input, select {
+  width: 100%; background: var(--panel-2); border: 1px solid var(--line);
+  color: var(--text); border-radius: 8px; padding: 10px 12px; font-size: 0.95rem;
+}
+label { display: block; font-size: 0.8rem; color: var(--muted); margin: 10px 0 4px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th { text-align: left; color: var(--muted); font-weight: 600; font-size: 0.75rem; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 8px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: none; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.pill {
+  display: inline-block; padding: 1px 8px; border-radius: 999px;
+  font-size: 0.7rem; font-weight: 700; border: 1px solid var(--line);
+}
+.pill.pos-QB { color: #f0a8ff; } .pill.pos-RB { color: #7fe3a8; }
+.pill.pos-WR { color: #7fc4f0; } .pill.pos-TE { color: #f0c87f; }
+.pill.pos-K { color: #c9c9c9; } .pill.pos-DST, .pill.pos-DEF { color: #e0937f; }
+.pill.up { color: var(--good); border-color: var(--accent-dim); }
+.pill.down { color: var(--bad); }
+
+.login-wrap { display: grid; place-items: center; min-height: 100dvh; padding: 20px; }
+.login-box { width: 100%; max-width: 340px; text-align: center; }
+.login-box h1 { font-size: 1.6rem; }
+.login-box h1 span { color: var(--accent); }
+
+.empty { text-align: center; color: var(--muted); padding: 40px 12px; }
+.spinner { text-align: center; color: var(--muted); padding: 30px; }
