@@ -1,8 +1,15 @@
 import type { FastifyInstance } from "fastify";
 import { getConfig, writeSettingsFile } from "../config.js";
 import { getLeagues } from "../leagues.js";
-import { getPlayerIndex, normalizeName } from "../players.js";
-import { storeAgeMs } from "../store.js";
+import { findByName, getPlayerIndex, normalizeName } from "../players.js";
+import { storeAgeMs, storeGet, storeSet } from "../store.js";
+import {
+  detectFpKind,
+  parseFpProjections,
+  parseFpRankings,
+  type FpProjectionRow,
+  type FpRankingRow,
+} from "../connectors/fantasypros/parse.js";
 import { runAllJobsNow } from "../sync/loop.js";
 import { getNflWeek } from "../sync/spine.js";
 import { syncEspnLeague } from "../connectors/espn/sync.js";
@@ -33,8 +40,62 @@ export async function registerApiRoutes(app: FastifyInstance) {
         trending: ageMin("trending"),
         usage: ageMin(`usage_${season}`) ?? ageMin(`usage_${season - 1}`),
         tiers: ageMin("tiers_ppr"),
+        fantasypros: (() => {
+          const ages = ["ppr", "half", "std"]
+            .flatMap((s) => [ageMin(`fp_rankings_${s}`), ageMin(`fp_projections_${s}`)])
+            .filter((v): v is number => v !== null);
+          return ages.length ? Math.min(...ages) : null;
+        })(),
       },
     };
+  });
+
+  const FP_SCORINGS = ["ppr", "half", "std"] as const;
+
+  app.post<{ Body: { scoring?: string; csv?: string } }>(
+    "/api/fantasypros/upload",
+    async (req, reply) => {
+      const scoring = FP_SCORINGS.find((s) => s === req.body?.scoring) ?? "ppr";
+      const csv = req.body?.csv;
+      if (!csv?.trim()) {
+        return reply.code(400).send({ error: "Empty file — export a CSV from FantasyPros first." });
+      }
+      const kind = detectFpKind(csv);
+      if (!kind) {
+        return reply.code(400).send({
+          error:
+            "That doesn't look like a FantasyPros export — expected RK + PLAYER NAME columns (rankings) or Player + FPTS columns (projections).",
+        });
+      }
+      const rows = kind === "rankings" ? parseFpRankings(csv) : parseFpProjections(csv);
+      if (rows.length === 0) {
+        return reply.code(400).send({ error: "Recognized the format but found no player rows." });
+      }
+      const index = getPlayerIndex();
+      const matched = rows.filter((r) => findByName(index, r.name, r.position, r.team)).length;
+      storeSet(`fp_${kind}_${scoring}`, rows);
+      req.log.info({ kind, scoring, rows: rows.length, matched }, "fantasypros upload stored");
+      return { kind, scoring, rows: rows.length, matched };
+    },
+  );
+
+  app.get("/api/fantasypros/status", async () => {
+    const datasets: {
+      kind: "rankings" | "projections";
+      scoring: string;
+      rows: number;
+      ageMinutes: number;
+    }[] = [];
+    for (const scoring of FP_SCORINGS) {
+      for (const kind of ["rankings", "projections"] as const) {
+        const rows = storeGet<(FpRankingRow | FpProjectionRow)[]>(`fp_${kind}_${scoring}`);
+        const age = storeAgeMs(`fp_${kind}_${scoring}`);
+        if (rows && Number.isFinite(age)) {
+          datasets.push({ kind, scoring, rows: rows.length, ageMinutes: Math.round(age / 60_000) });
+        }
+      }
+    }
+    return { datasets };
   });
 
   app.get<{ Querystring: { q?: string } }>("/api/players/search", async (req) => {

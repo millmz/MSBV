@@ -49,9 +49,11 @@ export function computeBlends(opts: {
   sleeperProjections: PlayerProjection[];
   /** Platform projection in league points, keyed by canonical player id. */
   platformProjections?: Map<string, number>;
+  /** FantasyPros projection (from subscriber CSV export), keyed by canonical player id. */
+  fpProjections?: Map<string, number>;
   rules: ScoringRules;
 }): BlendMap {
-  const { players, sleeperProjections, platformProjections, rules } = opts;
+  const { players, sleeperProjections, platformProjections, fpProjections, rules } = opts;
   const usable = hasUsableRules(rules);
   const out: BlendMap = new Map();
 
@@ -71,6 +73,9 @@ export function computeBlends(opts: {
 
     const platform = platformProjections?.get(proj.playerId);
     if (platform !== undefined && platform > 0) sources.platform = platform;
+
+    const fp = fpProjections?.get(proj.playerId);
+    if (fp !== undefined && fp > 0) sources.fantasypros = fp;
 
     const values = Object.values(sources);
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
