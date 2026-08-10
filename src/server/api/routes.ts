@@ -8,11 +8,13 @@ import { getNflWeek } from "../sync/spine.js";
 import { syncEspnLeague } from "../connectors/espn/sync.js";
 import { registerYahooRoutes } from "./yahoo-routes.js";
 import { registerLeagueRoutes } from "./league-routes.js";
+import { registerDraftRoutes } from "./draft-routes.js";
 
 /** All authenticated JSON API routes. Grows with each milestone. */
 export async function registerApiRoutes(app: FastifyInstance) {
   await registerYahooRoutes(app);
   await registerLeagueRoutes(app);
+  await registerDraftRoutes(app);
   app.get("/api/spine/status", async () => {
     const { season, week } = getNflWeek();
     const index = getPlayerIndex();

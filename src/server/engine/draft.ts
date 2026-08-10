@@ -57,6 +57,37 @@ export function buildCheatSheet(
   return rows;
 }
 
+/**
+ * Picks until my next turn in a snake draft, inferred from the observed pick
+ * order (works even with a custom first-round order).
+ */
+export function estimatePicksUntilNext(
+  pickTeamIds: string[],
+  myTeamId: string,
+  teamCount: number,
+): number {
+  if (teamCount <= 0) return 10;
+  // First-round order = first appearance order; pad with unknowns if early.
+  const seen: string[] = [];
+  for (const id of pickTeamIds) {
+    if (!seen.includes(id)) seen.push(id);
+    if (seen.length === teamCount) break;
+  }
+  const order = [...seen];
+  while (order.length < teamCount) order.push(`?${order.length}`);
+  const myIndex = order.indexOf(myTeamId);
+  if (myIndex === -1) return teamCount; // not on the clock yet / unknown
+
+  const current = pickTeamIds.length; // 0-based index of the NEXT overall pick
+  for (let overall = current; overall < current + teamCount * 2; overall++) {
+    const round = Math.floor(overall / teamCount);
+    const posInRound = overall % teamCount;
+    const teamIndex = round % 2 === 0 ? posInRound : teamCount - 1 - posInRound;
+    if (teamIndex === myIndex) return overall - current;
+  }
+  return teamCount;
+}
+
 export type DraftAdvice = {
   playerId: string;
   score: number;
