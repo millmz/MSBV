@@ -109,16 +109,115 @@ function EspnCard({ config, onChange }: { config: ConfigInfo; onChange: () => vo
   );
 }
 
-function YahooCard({ config }: { config: ConfigInfo }) {
+function YahooCard({ config, onChange }: { config: ConfigInfo; onChange: () => void }) {
+  const params = new URLSearchParams(window.location.search);
+  const needsPick = params.get("yahoo") === "pick_league" || (config.yahoo.connected && !config.yahoo.leagueKey);
+  const yahooError = params.get("yahoo_error");
+
+  const [open, setOpen] = useState(!config.yahoo.connected);
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(yahooError ? `Yahoo error: ${yahooError}` : "");
+  const [leagues, setLeagues] = useState<{ leagueKey: string; name: string }[] | null>(null);
+  const [env, setEnv] = useState<Record<string, string | null> | null>(null);
+
+  useEffect(() => {
+    if (needsPick) {
+      api.get<{ leagues: { leagueKey: string; name: string }[] }>("/api/yahoo/leagues")
+        .then((r) => setLeagues(r.leagues))
+        .catch(() => {});
+    }
+    if (config.yahoo.connected) {
+      api.get<Record<string, string | null>>("/api/yahoo/env").then(setEnv).catch(() => {});
+    }
+  }, [needsPick, config.yahoo.connected]);
+
+  const startOAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const res = await api.post<{ authorizeUrl: string }>("/api/yahoo/app", { clientId, clientSecret });
+      window.location.href = res.authorizeUrl; // off to Yahoo's consent page
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "failed");
+      setBusy(false);
+    }
+  };
+
+  const pickLeague = async (leagueKey: string) => {
+    setBusy(true);
+    try {
+      await api.post("/api/yahoo/league", { leagueKey });
+      window.history.replaceState(null, "", "/connections");
+      onChange();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="card">
       <h2>
         Yahoo league{" "}
         <span className={config.yahoo.connected ? "good" : "muted"}>
           {config.yahoo.connected ? "● connected" : "○ not connected"}
-        </span>
+        </span>{" "}
+        <button className="ghost" style={{ float: "right" }} onClick={() => setOpen(!open)}>
+          {open ? "Hide" : config.yahoo.connected ? "Details" : "Connect"}
+        </button>
       </h2>
-      <p className="muted">Yahoo OAuth connect flow arrives with the next milestone (M3).</p>
+      {error && <p className="bad">{error}</p>}
+      {needsPick && leagues && (
+        <div>
+          <label>Pick your Yahoo league</label>
+          {leagues.map((l) => (
+            <p key={l.leagueKey}>
+              <button className="primary" disabled={busy} onClick={() => pickLeague(l.leagueKey)}>
+                {l.name}
+              </button>
+            </p>
+          ))}
+        </div>
+      )}
+      {open && !config.yahoo.connected && (
+        <form onSubmit={startOAuth}>
+          <p className="muted">
+            One-time setup (~10 min): create a free app at{" "}
+            <a href="https://developer.yahoo.com/apps/create/" target="_blank" rel="noreferrer">
+              developer.yahoo.com/apps/create
+            </a>
+            . Choose <b>Confidential Client</b>, set the redirect URI to{" "}
+            <code>{window.location.origin}/api/yahoo/callback</code>, and give it{" "}
+            <b>Fantasy Sports — Read</b> permission. Then paste the credentials here.
+          </p>
+          <label>Client ID</label>
+          <input value={clientId} onChange={(e) => setClientId(e.target.value)} />
+          <label>Client Secret</label>
+          <input value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} />
+          <p>
+            <button className="primary" disabled={busy || !clientId || !clientSecret} type="submit">
+              {busy ? "Redirecting…" : "Connect Yahoo"}
+            </button>
+          </p>
+        </form>
+      )}
+      {open && config.yahoo.connected && env && (
+        <div>
+          <p className="muted">
+            Deploying on Render? Set these env vars so the connection survives redeploys:
+          </p>
+          <pre style={{ overflowX: "auto", fontSize: "0.75rem" }}>
+            {`YAHOO_CLIENT_ID=${env.YAHOO_CLIENT_ID ?? ""}
+YAHOO_REFRESH_TOKEN=${env.YAHOO_REFRESH_TOKEN ?? ""}
+YAHOO_LEAGUE_KEY=${env.YAHOO_LEAGUE_KEY ?? ""}`}
+          </pre>
+          <p className="muted">(Client secret: use the value from developer.yahoo.com.)</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -164,7 +263,13 @@ export function Connections() {
           refresh();
         }}
       />
-      <YahooCard config={config} />
+      <YahooCard
+        config={config}
+        onChange={() => {
+          load();
+          refresh();
+        }}
+      />
     </>
   );
 }
