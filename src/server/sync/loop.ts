@@ -15,7 +15,22 @@ export type SyncJob = {
 const jobs: SyncJob[] = [];
 
 export function registerSyncJob(job: SyncJob) {
+  if (jobs.some((j) => j.name === job.name)) return;
   jobs.push(job);
+}
+
+/** Force-run every job now (manual re-sync button). Returns per-job outcome. */
+export async function runAllJobsNow(log: FastifyBaseLogger): Promise<Record<string, string>> {
+  const results: Record<string, string> = {};
+  for (const job of jobs) {
+    try {
+      await job.run(log);
+      results[job.name] = "ok";
+    } catch (err) {
+      results[job.name] = err instanceof Error ? err.message : String(err);
+    }
+  }
+  return results;
 }
 
 export function startSyncLoop(log: FastifyBaseLogger, tickMs = 60_000) {
