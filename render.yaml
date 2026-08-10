@@ -3,8 +3,8 @@ services:
     name: msbv
     runtime: node
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
-    startCommand: pnpm start
+    buildCommand: npm install -g pnpm@10.33.0 && pnpm install --frozen-lockfile && pnpm build
+    startCommand: npx tsx src/server/main.ts
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
