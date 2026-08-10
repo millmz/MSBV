@@ -280,10 +280,11 @@ function FantasyProsCard() {
       {open && (
         <>
           <p className="muted">
-            Subscriber CSV exports feed the blend and the draft board. On fantasypros.com, open{" "}
-            <b>Rankings</b> or <b>Projections</b> for your scoring format and hit <b>Export</b> →
-            CSV, then drop the file here. Rankings add expert-consensus rank (ECR) to the draft
-            cheat sheet; projections join Sleeper and your platform as a third blend source.
+            Rankings add expert-consensus rank (ECR) to the draft cheat sheet; projections join
+            Sleeper and your platform as a third blend source. MSBV <b>auto-pulls</b> the consensus
+            data for standard scorings daily — no exporting needed. Uploading a CSV export here
+            overrides the auto-pull for that dataset for a week (useful for custom scoring): on
+            fantasypros.com open <b>Rankings</b> or <b>Projections</b> and hit <b>Export</b> → CSV.
           </p>
           <label>Scoring format of the export</label>
           <select value={scoring} onChange={(e) => setScoring(e.target.value)}>

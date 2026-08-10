@@ -10,6 +10,7 @@ import {
   type FpProjectionRow,
   type FpRankingRow,
 } from "../connectors/fantasypros/parse.js";
+import { markFpManualUpload } from "../connectors/fantasypros/sync.js";
 import { runAllJobsNow } from "../sync/loop.js";
 import { getNflWeek } from "../sync/spine.js";
 import { syncEspnLeague } from "../connectors/espn/sync.js";
@@ -74,6 +75,7 @@ export async function registerApiRoutes(app: FastifyInstance) {
       const index = getPlayerIndex();
       const matched = rows.filter((r) => findByName(index, r.name, r.position, r.team)).length;
       storeSet(`fp_${kind}_${scoring}`, rows);
+      markFpManualUpload(`fp_${kind}_${scoring}`);
       req.log.info({ kind, scoring, rows: rows.length, matched }, "fantasypros upload stored");
       return { kind, scoring, rows: rows.length, matched };
     },
