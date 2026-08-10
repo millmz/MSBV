@@ -50,6 +50,7 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
         <h1>
           MSBV <span>Fantasy HQ</span>
         </h1>
+        <p className="tagline">Medium Stakes · Big Vibes</p>
         <p className="muted">Enter the app password</p>
         <input
           type="password"
@@ -119,8 +120,11 @@ export function App() {
     >
       <div className="app">
         <header className="topbar">
-          <div className="brand">
-            MSBV <span>HQ</span>
+          <div>
+            <div className="brand">
+              MSBV <span>HQ</span>
+            </div>
+            <div className="topbar-tag">Medium Stakes · Big Vibes</div>
           </div>
           <div className="league-toggle">
             {leagues.map((l) => (
