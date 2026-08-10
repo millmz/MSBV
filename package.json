@@ -2,6 +2,7 @@
   "name": "msbv",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.33.0",
   "description": "MSBV — fantasy football season companion: ESPN + Yahoo league sync, draft tools, lineups, waivers, trades",
   "type": "module",
   "engines": {
