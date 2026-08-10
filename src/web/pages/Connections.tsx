@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { useLeagues } from "../App.js";
 
 type ConfigInfo = {
   season: number;
@@ -7,12 +8,140 @@ type ConfigInfo = {
   yahoo: { appConfigured: boolean; connected: boolean; leagueKey: string };
 };
 
+type EspnConnectResult = {
+  ok: boolean;
+  league: {
+    id: string;
+    name: string;
+    scoringLabel: string;
+    teams: { id: string; name: string }[];
+    myTeamId?: string;
+  };
+};
+
+function EspnCard({ config, onChange }: { config: ConfigInfo; onChange: () => void }) {
+  const [open, setOpen] = useState(!config.espn.connected);
+  const [leagueId, setLeagueId] = useState(config.espn.leagueId);
+  const [s2, setS2] = useState("");
+  const [swid, setSwid] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<EspnConnectResult["league"] | null>(null);
+
+  const connect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const res = await api.post<EspnConnectResult>("/api/espn/connect", { leagueId, s2, swid });
+      setResult(res.league);
+      onChange();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "connection failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pickTeam = async (teamId: string) => {
+    await api.post("/api/espn/my-team", { teamId: Number(teamId) });
+    setResult((r) => (r ? { ...r, myTeamId: teamId } : r));
+    onChange();
+  };
+
+  return (
+    <div className="card">
+      <h2>
+        ESPN league{" "}
+        <span className={config.espn.connected ? "good" : "muted"}>
+          {config.espn.connected ? "● connected" : "○ not connected"}
+        </span>{" "}
+        <button className="ghost" style={{ float: "right" }} onClick={() => setOpen(!open)}>
+          {open ? "Hide" : config.espn.connected ? "Edit" : "Connect"}
+        </button>
+      </h2>
+      {open && (
+        <form onSubmit={connect}>
+          <p className="muted">
+            Find the league ID in your league's URL on fantasy.espn.com (<code>leagueId=…</code>).
+            If the league is <b>private</b>, also paste two cookies: on fantasy.espn.com open
+            DevTools → Application → Cookies → espn.com and copy <code>espn_s2</code> and{" "}
+            <code>SWID</code> (keep the curly braces).
+          </p>
+          <label>League ID</label>
+          <input value={leagueId} onChange={(e) => setLeagueId(e.target.value)} placeholder="e.g. 1234567" />
+          <label>espn_s2 cookie (private leagues)</label>
+          <input value={s2} onChange={(e) => setS2(e.target.value)} placeholder="AEB…" />
+          <label>SWID cookie (private leagues)</label>
+          <input value={swid} onChange={(e) => setSwid(e.target.value)} placeholder="{XXXXXXXX-…}" />
+          {error && <p className="bad">{error}</p>}
+          <p>
+            <button className="primary" disabled={busy || !leagueId.trim()} type="submit">
+              {busy ? "Connecting…" : "Connect ESPN"}
+            </button>
+          </p>
+        </form>
+      )}
+      {result && (
+        <div>
+          <p className="good">
+            Connected: <b>{result.name}</b> ({result.scoringLabel})
+          </p>
+          <label>Which team is yours?</label>
+          <select value={result.myTeamId ?? ""} onChange={(e) => pickTeam(e.target.value)}>
+            <option value="" disabled>
+              Pick your team…
+            </option>
+            {result.teams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+          <p className="muted" style={{ marginTop: 10 }}>
+            Deploying on Render? Copy these into the service's environment so the connection
+            survives redeploys: <code>ESPN_LEAGUE_ID</code>, <code>ESPN_S2</code>,{" "}
+            <code>ESPN_SWID</code>.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function YahooCard({ config }: { config: ConfigInfo }) {
+  return (
+    <div className="card">
+      <h2>
+        Yahoo league{" "}
+        <span className={config.yahoo.connected ? "good" : "muted"}>
+          {config.yahoo.connected ? "● connected" : "○ not connected"}
+        </span>
+      </h2>
+      <p className="muted">Yahoo OAuth connect flow arrives with the next milestone (M3).</p>
+    </div>
+  );
+}
+
 export function Connections() {
   const [config, setConfig] = useState<ConfigInfo | null>(null);
+  const { refresh } = useLeagues();
 
-  useEffect(() => {
+  const load = () => {
     api.get<ConfigInfo>("/api/config").then(setConfig).catch(() => {});
-  }, []);
+  };
+  useEffect(load, []);
+
+  const [syncing, setSyncing] = useState(false);
+  const syncNow = async () => {
+    setSyncing(true);
+    try {
+      await api.post("/api/sync");
+      refresh();
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   if (!config) return <div className="spinner">Loading…</div>;
 
@@ -20,24 +149,22 @@ export function Connections() {
     <>
       <div className="card">
         <h2>Season {config.season}</h2>
-        <p className="muted">Connect both leagues below. Full guided flows arrive with M2/M3.</p>
+        <p className="muted">
+          Connect both leagues below. Player data (projections, usage, tiers) syncs automatically
+          in the background.
+        </p>
+        <button className="ghost" onClick={syncNow} disabled={syncing}>
+          {syncing ? "Syncing…" : "Re-sync everything now"}
+        </button>
       </div>
-      <div className="card">
-        <h2>
-          ESPN league{" "}
-          <span className={config.espn.connected ? "good" : "muted"}>
-            {config.espn.connected ? "● connected" : "○ not connected"}
-          </span>
-        </h2>
-      </div>
-      <div className="card">
-        <h2>
-          Yahoo league{" "}
-          <span className={config.yahoo.connected ? "good" : "muted"}>
-            {config.yahoo.connected ? "● connected" : "○ not connected"}
-          </span>
-        </h2>
-      </div>
+      <EspnCard
+        config={config}
+        onChange={() => {
+          load();
+          refresh();
+        }}
+      />
+      <YahooCard config={config} />
     </>
   );
 }

@@ -2,6 +2,7 @@ import { buildApp } from "./app.js";
 import { ensureDataDir, getConfig } from "./config.js";
 import { startSyncLoop } from "./sync/loop.js";
 import { registerSpineJobs } from "./sync/spine.js";
+import { registerEspnJobs } from "./connectors/espn/sync.js";
 
 const config = getConfig();
 ensureDataDir();
@@ -13,6 +14,7 @@ if (!config.appPassword) {
 }
 
 registerSpineJobs();
+registerEspnJobs();
 startSyncLoop(app.log);
 
 await app.listen({ port: config.port, host: "0.0.0.0" });
