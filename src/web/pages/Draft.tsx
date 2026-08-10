@@ -14,6 +14,7 @@ type CheatSheet = {
     vor: number;
     adp?: number;
     value?: number;
+    ecr?: number;
     name: string;
     position?: string;
     team?: string;
@@ -162,7 +163,7 @@ export function Draft() {
             <thead>
               <tr>
                 <th>#</th><th>Player</th><th>Tier</th>
-                <th className="num">Pts</th><th className="num">VOR</th><th className="num">Val</th><th className="num">Bye</th>
+                <th className="num">Pts</th><th className="num">VOR</th><th className="num">Val</th><th className="num">ECR</th><th className="num">Bye</th>
               </tr>
             </thead>
             <tbody>
@@ -180,6 +181,7 @@ export function Draft() {
                   <td className={`num ${r.value !== undefined && r.value > 5 ? "good" : ""}`}>
                     {r.value !== undefined ? (r.value > 0 ? `+${r.value}` : r.value) : "—"}
                   </td>
+                  <td className="num muted">{r.ecr ?? "—"}</td>
                   <td className="num muted">{r.byeWeek ?? "—"}</td>
                 </tr>
               ))}

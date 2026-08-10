@@ -222,6 +222,104 @@ YAHOO_LEAGUE_KEY=${env.YAHOO_LEAGUE_KEY ?? ""}`}
   );
 }
 
+type FpStatus = {
+  datasets: { kind: "rankings" | "projections"; scoring: string; rows: number; ageMinutes: number }[];
+};
+
+function FantasyProsCard() {
+  const [status, setStatus] = useState<FpStatus | null>(null);
+  const [scoring, setScoring] = useState("ppr");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const load = () => {
+    api.get<FpStatus>("/api/fantasypros/status").then(setStatus).catch(() => {});
+  };
+  useEffect(load, []);
+
+  const connected = (status?.datasets.length ?? 0) > 0;
+  const [open, setOpen] = useState(true);
+  useEffect(() => {
+    if (status) setOpen(status.datasets.length === 0);
+  }, [status]);
+
+  const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const csv = await file.text();
+      const res = await api.post<{ kind: string; rows: number; matched: number }>(
+        "/api/fantasypros/upload",
+        { scoring, csv },
+      );
+      setMessage(`Loaded ${res.kind}: ${res.rows} players, ${res.matched} matched to the universe.`);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="card">
+      <h2>
+        FantasyPros{" "}
+        <span className={connected ? "good" : "muted"}>
+          {connected ? "● loaded" : "○ no data yet"}
+        </span>{" "}
+        <button className="ghost" style={{ float: "right" }} onClick={() => setOpen(!open)}>
+          {open ? "Hide" : connected ? "Update" : "Add"}
+        </button>
+      </h2>
+      {open && (
+        <>
+          <p className="muted">
+            Subscriber CSV exports feed the blend and the draft board. On fantasypros.com, open{" "}
+            <b>Rankings</b> or <b>Projections</b> for your scoring format and hit <b>Export</b> →
+            CSV, then drop the file here. Rankings add expert-consensus rank (ECR) to the draft
+            cheat sheet; projections join Sleeper and your platform as a third blend source.
+          </p>
+          <label>Scoring format of the export</label>
+          <select value={scoring} onChange={(e) => setScoring(e.target.value)}>
+            <option value="ppr">PPR</option>
+            <option value="half">Half PPR</option>
+            <option value="std">Standard</option>
+          </select>
+          <label>{busy ? "Uploading…" : "FantasyPros CSV export"}</label>
+          <input type="file" accept=".csv,text/csv" onChange={upload} disabled={busy} />
+          {message && <p className="good">{message}</p>}
+          {error && <p className="bad">{error}</p>}
+          {connected && (
+            <table style={{ marginTop: 10 }}>
+              <thead>
+                <tr><th>Dataset</th><th>Scoring</th><th className="num">Players</th><th className="num">Uploaded</th></tr>
+              </thead>
+              <tbody>
+                {status!.datasets.map((d) => (
+                  <tr key={`${d.kind}-${d.scoring}`}>
+                    <td>{d.kind === "rankings" ? "Rankings (ECR)" : "Projections"}</td>
+                    <td className="muted">{d.scoring.toUpperCase()}</td>
+                    <td className="num">{d.rows}</td>
+                    <td className="num muted">
+                      {d.ageMinutes < 90 ? `${d.ageMinutes}m ago` : `${Math.round(d.ageMinutes / 60)}h ago`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 type SpineStatus = {
   season: number;
   week: number;
@@ -244,6 +342,7 @@ function DataHealth() {
     trending: "Trending adds/drops",
     usage: "Usage stats (nflverse)",
     tiers: "Tier charts",
+    fantasypros: "FantasyPros (CSV uploads)",
   };
   return (
     <div className="card">
@@ -253,7 +352,15 @@ function DataHealth() {
           {Object.entries(labels).map(([key, label]) => (
             <tr key={key}>
               <td>{label}</td>
-              <td className="num">{key === "weekProjections" && status.week === 0 ? <span className="muted">in season</span> : age(status.freshnessMinutes[key] ?? null)}</td>
+              <td className="num">
+                {key === "weekProjections" && status.week === 0 ? (
+                  <span className="muted">in season</span>
+                ) : key === "fantasypros" && status.freshnessMinutes[key] == null ? (
+                  <span className="muted">optional</span>
+                ) : (
+                  age(status.freshnessMinutes[key] ?? null)
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -310,6 +417,7 @@ export function Connections() {
           refresh();
         }}
       />
+      <FantasyProsCard />
       <DataHealth />
       <div className="card">
         <h2>Your weekly rhythm</h2>

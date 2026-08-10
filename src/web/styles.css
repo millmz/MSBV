@@ -217,6 +217,13 @@ input, select {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 input::placeholder { color: var(--ink-faint); }
+input[type="file"] { padding: 8px; color: var(--ink-dim); }
+input[type="file"]::file-selector-button {
+  background: rgba(47, 227, 130, 0.07); color: var(--turf);
+  border: 1px solid rgba(47, 227, 130, 0.32); border-radius: var(--r-s);
+  padding: 7px 12px; margin-right: 12px; cursor: pointer;
+  font-family: inherit; font-weight: 600; font-size: 0.85rem;
+}
 input:focus, select:focus {
   outline: none; border-color: var(--turf);
   box-shadow: 0 0 0 3px rgba(47, 227, 130, 0.16);

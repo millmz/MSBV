@@ -50,7 +50,13 @@ export async function registerDraftRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>("/api/league/:id/draft/cheatsheet", async (req, reply) => {
     const ctx = buildLeagueContext(decodeURIComponent(req.params.id));
     if (!ctx) return reply.code(404).send({ error: "league not synced" });
-    const sheet = buildCheatSheet(ctx.seasonBlends, ctx.vor, ctx.players, 200);
+    const sheet = buildCheatSheet(
+      ctx.seasonBlends,
+      ctx.vor,
+      ctx.players,
+      200,
+      ctx.fpRanks.size ? ctx.fpRanks : undefined,
+    );
     return {
       scoringLabel: ctx.league.scoring.label,
       rows: sheet.map((row) => {

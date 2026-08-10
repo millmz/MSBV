@@ -1,8 +1,9 @@
 import type { League, TierChart } from "../../core/types.js";
 import type { EspnPoolEntry } from "../connectors/espn/map.js";
 import { getConfig } from "../config.js";
+import type { FpProjectionRow, FpRankingRow } from "../connectors/fantasypros/parse.js";
 import { getLeague } from "../leagues.js";
-import { getPlayerIndex } from "../players.js";
+import { findByName, getPlayerIndex } from "../players.js";
 import { storeGet } from "../store.js";
 import { getNflWeek } from "../sync/spine.js";
 import type { BlendMap } from "./blend.js";
@@ -28,6 +29,8 @@ export type LeagueContext = {
   mispricings: Mispricing[];
   trending: TrendingPlayer[];
   tierCharts: TierChart[];
+  /** FantasyPros ECR rank by canonical player id (from uploaded rankings CSV). */
+  fpRanks: Map<string, number>;
   week: number;
 };
 
@@ -60,10 +63,26 @@ export function buildLeagueContext(leagueId: string): LeagueContext | undefined 
     }
   }
 
+  const scoringKey =
+    league.scoring.label === "PPR" ? "ppr" : league.scoring.label === "Half PPR" ? "half" : "std";
+
+  // FantasyPros uploads (subscriber CSV exports), matched into the universe by name.
+  const fpSeason = new Map<string, number>();
+  for (const row of storeGet<FpProjectionRow[]>(`fp_projections_${scoringKey}`) ?? []) {
+    const p = findByName(index, row.name, row.position, row.team);
+    if (p && row.points > 0) fpSeason.set(p.id, row.points);
+  }
+  const fpRanks = new Map<string, number>();
+  for (const row of storeGet<FpRankingRow[]>(`fp_rankings_${scoringKey}`) ?? []) {
+    const p = findByName(index, row.name, row.position, row.team);
+    if (p) fpRanks.set(p.id, row.rank);
+  }
+
   const seasonBlends = computeBlends({
     players,
     sleeperProjections: seasonProj,
     platformProjections: platformSeason.size ? platformSeason : undefined,
+    fpProjections: fpSeason.size ? fpSeason : undefined,
     rules: league.scoring,
   });
   const weekBlends = computeBlends({
@@ -84,8 +103,6 @@ export function buildLeagueContext(leagueId: string): LeagueContext | undefined 
 
   const mispricings = computeMispricings(league, seasonBlends, players, platformRanks);
 
-  const scoringKey =
-    league.scoring.label === "PPR" ? "ppr" : league.scoring.label === "Half PPR" ? "half" : "std";
   const tierCharts = storeGet<TierChart[]>(`tiers_${scoringKey}`) ?? [];
 
   return {
@@ -98,6 +115,7 @@ export function buildLeagueContext(leagueId: string): LeagueContext | undefined 
     mispricings,
     trending: storeGet<TrendingPlayer[]>("trending") ?? [],
     tierCharts,
+    fpRanks,
     week,
   };
 }

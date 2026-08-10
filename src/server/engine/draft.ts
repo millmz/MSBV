@@ -18,6 +18,8 @@ export type CheatSheetRow = {
   /** Market ADP proxy rank; positive value = falls past his worth. */
   adp?: number;
   value?: number;
+  /** FantasyPros expert-consensus rank, when a rankings CSV is uploaded. */
+  ecr?: number;
 };
 
 export function buildCheatSheet(
@@ -25,6 +27,7 @@ export function buildCheatSheet(
   vor: Map<string, VorEntry>,
   players: Map<string, Player>,
   limit = 250,
+  ecr?: Map<string, number>,
 ): CheatSheetRow[] {
   const rows: CheatSheetRow[] = [];
   for (const [playerId, entry] of vor) {
@@ -53,6 +56,8 @@ export function buildCheatSheet(
       row.adp = marketRank;
       row.value = marketRank - row.overallRank; // positive = market lets him fall
     }
+    const expertRank = ecr?.get(row.playerId);
+    if (expertRank !== undefined) row.ecr = expertRank;
   });
   return rows;
 }
