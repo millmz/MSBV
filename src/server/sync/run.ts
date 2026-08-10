@@ -2,6 +2,7 @@ import type { FastifyBaseLogger } from "fastify";
 import { runAllJobsNow } from "./loop.js";
 import { registerSpineJobs } from "./spine.js";
 import { registerEspnJobs } from "../connectors/espn/sync.js";
+import { registerFantasyProsJobs } from "../connectors/fantasypros/sync.js";
 import { registerYahooJobs } from "../connectors/yahoo/sync.js";
 
 /**
@@ -24,6 +25,7 @@ const consoleLogger: FastifyBaseLogger = {
 registerSpineJobs();
 registerEspnJobs();
 registerYahooJobs();
+registerFantasyProsJobs();
 
 const results = await runAllJobsNow(consoleLogger);
 console.log("\nsync results:");
