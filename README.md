@@ -55,6 +55,13 @@ Everything can be entered on the in-app **Setup** screen; environment variables 
 
 The repo ships a `render.yaml`. Create a new **Web Service** from this repo on [render.com](https://render.com), and set the env vars above (at minimum `APP_PASSWORD` and `BASE_URL`). Free tier works: all data re-syncs from the league APIs on boot, and credentials live in env vars, so the ephemeral disk costs nothing but a warm-up sync.
 
+## How to use it through the season
+
+- **Draft day**: open the Draft tab, hit **Go live** when your draft starts. Picks sync every few seconds; the advice panel reranks for your roster, warns about tier cliffs, and counts picks until your turn. The cheat sheet below it never breaks, even if live sync does.
+- **Tuesday night** (before waivers process): Waivers tab — top claims with reasons and who to drop.
+- **Wednesday**: Edge tab — buy-low/sell-high windows and platform mispricings for trade offers; Trades tab proposes specific packages.
+- **Sunday morning**: Lineup tab — final start/sit with floor/ceiling logic tuned to whether you're favored or chasing.
+
 ## Data sources (all free)
 
 - **Sleeper API** — player universe + ESPN/Yahoo ID cross-map, projections, ADP, trending adds/drops, injury status

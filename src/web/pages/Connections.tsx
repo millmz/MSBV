@@ -222,6 +222,46 @@ YAHOO_LEAGUE_KEY=${env.YAHOO_LEAGUE_KEY ?? ""}`}
   );
 }
 
+type SpineStatus = {
+  season: number;
+  week: number;
+  players: number;
+  freshnessMinutes: Record<string, number | null>;
+};
+
+function DataHealth() {
+  const [status, setStatus] = useState<SpineStatus | null>(null);
+  useEffect(() => {
+    api.get<SpineStatus>("/api/spine/status").then(setStatus).catch(() => {});
+  }, []);
+  if (!status) return null;
+  const age = (min: number | null) =>
+    min === null ? <span className="bad">never</span> : min < 90 ? <span className="good">{min}m ago</span> : <span className="warn">{Math.round(min / 60)}h ago</span>;
+  const labels: Record<string, string> = {
+    players: "Player universe",
+    seasonProjections: "Season projections",
+    weekProjections: "Week projections",
+    trending: "Trending adds/drops",
+    usage: "Usage stats (nflverse)",
+    tiers: "Tier charts",
+  };
+  return (
+    <div className="card">
+      <h2>Data health <span className="muted">· {status.players.toLocaleString()} players · week {status.week || "preseason"}</span></h2>
+      <table>
+        <tbody>
+          {Object.entries(labels).map(([key, label]) => (
+            <tr key={key}>
+              <td>{label}</td>
+              <td className="num">{key === "weekProjections" && status.week === 0 ? <span className="muted">in season</span> : age(status.freshnessMinutes[key] ?? null)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function Connections() {
   const [config, setConfig] = useState<ConfigInfo | null>(null);
   const { refresh } = useLeagues();
@@ -270,6 +310,13 @@ export function Connections() {
           refresh();
         }}
       />
+      <DataHealth />
+      <div className="card">
+        <h2>Your weekly rhythm</h2>
+        <p className="muted" style={{ margin: "4px 0" }}>🗓 <b>Tuesday night</b> — Waivers tab before claims process: top targets + who to drop.</p>
+        <p className="muted" style={{ margin: "4px 0" }}>🗓 <b>Wednesday</b> — Edge tab: buy-low / sell-high trades while the week is young.</p>
+        <p className="muted" style={{ margin: "4px 0" }}>🗓 <b>Sunday morning</b> — Lineup tab for final start/sit with fresh injury statuses.</p>
+      </div>
     </>
   );
 }
