@@ -7,6 +7,7 @@ import { Waivers } from "./pages/Waivers.js";
 import { Trades } from "./pages/Trades.js";
 import { Draft } from "./pages/Draft.js";
 import { EdgeReport } from "./pages/EdgeReport.js";
+import { Ranks } from "./pages/Ranks.js";
 import { Connections } from "./pages/Connections.js";
 
 export type LeagueSummary = {
@@ -76,6 +77,7 @@ const TABS = [
   { to: "/waivers", icon: "🔄", label: "Waivers" },
   { to: "/trades", icon: "🤝", label: "Trades" },
   { to: "/draft", icon: "🎯", label: "Draft" },
+  { to: "/ranks", icon: "📊", label: "Ranks" },
   { to: "/edge", icon: "⚡", label: "Edge" },
   { to: "/connections", icon: "⚙️", label: "Setup" },
 ];
@@ -145,6 +147,7 @@ export function App() {
             <Route path="/waivers" element={<Waivers />} />
             <Route path="/trades" element={<Trades />} />
             <Route path="/draft" element={<Draft />} />
+            <Route path="/ranks" element={<Ranks />} />
             <Route path="/edge" element={<EdgeReport />} />
             <Route path="/connections" element={<Connections />} />
           </Routes>

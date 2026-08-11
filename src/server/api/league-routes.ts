@@ -195,6 +195,54 @@ export async function registerLeagueRoutes(app: FastifyInstance) {
   });
 
   /** Roster search within a league (trade evaluator picker). */
+  app.get<{ Params: { id: string }; Querystring: { view?: string } }>(
+    "/api/league/:id/ranks",
+    async (req, reply) => {
+      const ctx = withContext(req.params.id);
+      if (!ctx) return reply.code(404).send({ error: "league not synced" });
+      const view = req.query.view === "ros" ? "ros" : "week";
+      const rosteredBy = new Map<string, string>();
+      for (const team of ctx.league.teams) {
+        for (const r of team.roster) rosteredBy.set(r.playerId, team.name);
+      }
+
+      if (view === "ros") {
+        // Rest of season: FantasyPros ROS ECR ordering where available,
+        // season blend as the fallback spine so the board never goes empty.
+        const ids = new Set<string>([...ctx.fpRos.keys()]);
+        for (const [id, blend] of ctx.seasonBlends) if (blend.points > 0) ids.add(id);
+        const rows = [...ids]
+          .map((id) => ({
+            ...playerCard(ctx.players.get(id), ctx, id),
+            rosRank: ctx.fpRos.get(id)?.rank,
+            rosTier: ctx.fpRos.get(id)?.tier,
+            rosteredBy: rosteredBy.get(id),
+          }))
+          .sort((a, b) => {
+            if (a.rosRank !== undefined && b.rosRank !== undefined) return a.rosRank - b.rosRank;
+            if (a.rosRank !== undefined) return -1;
+            if (b.rosRank !== undefined) return 1;
+            return (b.season?.points ?? 0) - (a.season?.points ?? 0);
+          })
+          .slice(0, 250);
+        return { view, week: ctx.week, hasFpRos: ctx.fpRos.size > 0, rows };
+      }
+
+      if (ctx.week === 0) return { view, week: 0, rows: [] };
+      const ids = new Set<string>([...ctx.fpWeekRanks.keys()]);
+      for (const [id, blend] of ctx.weekBlends) if (blend.points > 0) ids.add(id);
+      const rows = [...ids]
+        .map((id) => ({
+          ...playerCard(ctx.players.get(id), ctx, id),
+          weekPosRank: ctx.fpWeekRanks.get(id),
+          rosteredBy: rosteredBy.get(id),
+        }))
+        .sort((a, b) => (b.week?.points ?? 0) - (a.week?.points ?? 0))
+        .slice(0, 250);
+      return { view, week: ctx.week, hasFpWeek: ctx.fpWeekRanks.size > 0, rows };
+    },
+  );
+
   app.get<{ Params: { id: string }; Querystring: { q?: string } }>(
     "/api/league/:id/players/search",
     async (req, reply) => {

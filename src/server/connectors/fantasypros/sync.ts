@@ -1,8 +1,15 @@
 import { storeAgeMs, storeGet, storeSet } from "../../store.js";
 import { registerSyncJob } from "../../sync/loop.js";
-import { fetchAutoProjections, fetchAutoRankings } from "./client.js";
+import { getNflWeek } from "../../sync/spine.js";
+import {
+  fetchAutoProjections,
+  fetchAutoRankings,
+  fetchRosRankings,
+  fetchWeekRankings,
+} from "./client.js";
 
-const DAY = 86_400_000;
+const HOUR = 3_600_000;
+const DAY = 24 * HOUR;
 const SCORINGS = ["ppr", "half", "std"] as const;
 
 /** Store keys the auto-sync owns; a manual CSV upload takes a key back. */
@@ -28,31 +35,49 @@ function canAutoWrite(key: string, owned: Set<string>): boolean {
 export function registerFantasyProsJobs() {
   registerSyncJob({
     name: "fantasypros-auto",
-    intervalMs: DAY,
+    intervalMs: 6 * HOUR,
     run: async (log) => {
+      const { week } = getNflWeek();
       const owned = autoOwned();
+
+      type Dataset = { key: string; fetch: () => Promise<unknown[]>; minAgeMs: number };
+      const datasets: Dataset[] = [];
+      for (const s of SCORINGS) {
+        // Draft-season data drifts slowly; ROS and weekly move all week long.
+        datasets.push(
+          { key: `fp_rankings_${s}`, fetch: () => fetchAutoRankings(s), minAgeMs: DAY },
+          { key: `fp_projections_${s}`, fetch: () => fetchAutoProjections(s), minAgeMs: DAY },
+          { key: `fp_ros_${s}`, fetch: () => fetchRosRankings(s), minAgeMs: 6 * HOUR },
+        );
+        if (week > 0) {
+          datasets.push(
+            { key: `fp_week_ranks_${s}`, fetch: () => fetchWeekRankings(s), minAgeMs: 6 * HOUR },
+            {
+              key: `fp_week_projections_${s}`,
+              fetch: () => fetchAutoProjections(s, week),
+              minAgeMs: 6 * HOUR,
+            },
+          );
+        }
+      }
+
       let wrote = 0;
       let failures = 0;
-      for (const scoring of SCORINGS) {
-        for (const [kind, fetcher] of [
-          ["rankings", fetchAutoRankings],
-          ["projections", fetchAutoProjections],
-        ] as const) {
-          const key = `fp_${kind}_${scoring}`;
-          if (!canAutoWrite(key, owned)) continue;
-          try {
-            const rows = await fetcher(scoring);
-            if (rows.length === 0) continue;
-            storeSet(key, rows);
-            owned.add(key);
-            wrote++;
-          } catch {
-            failures++;
-          }
+      for (const d of datasets) {
+        if (!canAutoWrite(d.key, owned)) continue;
+        if (owned.has(d.key) && storeAgeMs(d.key) < d.minAgeMs) continue;
+        try {
+          const rows = await d.fetch();
+          if (rows.length === 0) continue;
+          storeSet(d.key, rows);
+          owned.add(d.key);
+          wrote++;
+        } catch {
+          failures++;
         }
       }
       storeSet(AUTO_KEYS, [...owned]);
-      if (wrote > 0) log.info({ wrote }, "fantasypros auto-synced");
+      if (wrote > 0) log.info({ wrote, week }, "fantasypros auto-synced");
       if (wrote === 0 && failures > 0) {
         throw new Error("couldn't reach fantasypros.com — CSV upload still works");
       }
