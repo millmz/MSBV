@@ -65,4 +65,22 @@ describe("buildCheatSheet K/DST demotion", () => {
     expect(order.indexOf("d1")).toBeGreaterThan(order.indexOf("w1"));
     expect(order.indexOf("d1")).toBeGreaterThan(order.indexOf("w2"));
   });
+
+  it("never truncates K/DST off the board — the limit caps skill players only", () => {
+    const vor = new Map<string, VorEntry>([
+      ["w1", { playerId: "w1", points: 250, vor: 40, tier: 1, positionRank: 1 } as VorEntry],
+      ["w2", { playerId: "w2", points: 180, vor: 5, tier: 3, positionRank: 2 } as VorEntry],
+      ["d1", { playerId: "d1", points: 130, vor: 30, tier: 1, positionRank: 1 } as VorEntry],
+    ]);
+    const blends = computeBlends({
+      players,
+      sleeperProjections: [proj("w1", 2500), proj("w2", 1800), proj("d1", 1300)],
+      rules: rules as never,
+    });
+    // limit 2 covers only the skill players — the defense must survive anyway
+    const sheet = buildCheatSheet(blends, vor, players, 2);
+    const order = sheet.map((r) => r.playerId);
+    expect(order).toEqual(["w1", "w2", "d1"]);
+    expect(sheet[2]!.overallRank).toBe(3);
+  });
 });

@@ -48,7 +48,11 @@ export function buildCheatSheet(
     return pos === "K" || pos === "DST" ? 1 : 0;
   };
   rows.sort((a, b) => lateGroup(a.playerId) - lateGroup(b.playerId) || b.vor - a.vor);
-  rows.length = Math.min(rows.length, limit);
+  // The overall limit must never squeeze K/DST off the board entirely: cap
+  // the skill players, then keep the top kickers/defenses at the bottom.
+  const skill = rows.filter((r) => lateGroup(r.playerId) === 0).slice(0, limit);
+  const kd = rows.filter((r) => lateGroup(r.playerId) === 1).slice(0, 40);
+  const kept = [...skill, ...kd];
 
   // ADP proxy: Sleeper search rank ordering across drafted-relevant players.
   const bySearch = [...players.values()]
@@ -56,7 +60,7 @@ export function buildCheatSheet(
     .sort((a, b) => a.searchRank! - b.searchRank!);
   const adp = new Map(bySearch.map((p, i) => [p.id, i + 1]));
 
-  rows.forEach((row, i) => {
+  kept.forEach((row, i) => {
     row.overallRank = i + 1;
     const marketRank = adp.get(row.playerId);
     if (marketRank !== undefined) {
@@ -66,7 +70,7 @@ export function buildCheatSheet(
     const expertRank = ecr?.get(row.playerId);
     if (expertRank !== undefined) row.ecr = expertRank;
   });
-  return rows;
+  return kept;
 }
 
 /**
