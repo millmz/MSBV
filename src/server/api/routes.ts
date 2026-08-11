@@ -42,8 +42,9 @@ export async function registerApiRoutes(app: FastifyInstance) {
         usage: ageMin(`usage_${season}`) ?? ageMin(`usage_${season - 1}`),
         tiers: ageMin("tiers_ppr"),
         fantasypros: (() => {
+          const kinds = ["rankings", "projections", "ros", "week_ranks", "week_projections"];
           const ages = ["ppr", "half", "std"]
-            .flatMap((s) => [ageMin(`fp_rankings_${s}`), ageMin(`fp_projections_${s}`)])
+            .flatMap((s) => kinds.map((k) => ageMin(`fp_${k}_${s}`)))
             .filter((v): v is number => v !== null);
           return ages.length ? Math.min(...ages) : null;
         })(),

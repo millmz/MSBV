@@ -29,8 +29,12 @@ export type LeagueContext = {
   mispricings: Mispricing[];
   trending: TrendingPlayer[];
   tierCharts: TierChart[];
-  /** FantasyPros ECR rank by canonical player id (from uploaded rankings CSV). */
+  /** FantasyPros draft ECR rank by canonical player id. */
   fpRanks: Map<string, number>;
+  /** FantasyPros rest-of-season rank + tier by canonical player id. */
+  fpRos: Map<string, { rank: number; tier?: number }>;
+  /** FantasyPros weekly positional rank by canonical player id. */
+  fpWeekRanks: Map<string, number>;
   week: number;
 };
 
@@ -77,6 +81,23 @@ export function buildLeagueContext(leagueId: string): LeagueContext | undefined 
     const p = findByName(index, row.name, row.position, row.team);
     if (p) fpRanks.set(p.id, row.rank);
   }
+  const fpRos = new Map<string, { rank: number; tier?: number }>();
+  for (const row of storeGet<FpRankingRow[]>(`fp_ros_${scoringKey}`) ?? []) {
+    const p = findByName(index, row.name, row.position, row.team);
+    if (p) fpRos.set(p.id, { rank: row.rank, tier: row.tier });
+  }
+  const fpWeekRanks = new Map<string, number>();
+  const fpWeekProj = new Map<string, number>();
+  if (week > 0) {
+    for (const row of storeGet<FpRankingRow[]>(`fp_week_ranks_${scoringKey}`) ?? []) {
+      const p = findByName(index, row.name, row.position, row.team);
+      if (p) fpWeekRanks.set(p.id, row.rank);
+    }
+    for (const row of storeGet<FpProjectionRow[]>(`fp_week_projections_${scoringKey}`) ?? []) {
+      const p = findByName(index, row.name, row.position, row.team);
+      if (p && row.points > 0) fpWeekProj.set(p.id, row.points);
+    }
+  }
 
   const seasonBlends = computeBlends({
     players,
@@ -89,6 +110,7 @@ export function buildLeagueContext(leagueId: string): LeagueContext | undefined 
     players,
     sleeperProjections: weekProj,
     platformProjections: platformWeek.size ? platformWeek : undefined,
+    fpProjections: fpWeekProj.size ? fpWeekProj : undefined,
     rules: league.scoring,
   });
 
@@ -116,6 +138,8 @@ export function buildLeagueContext(leagueId: string): LeagueContext | undefined 
     trending: storeGet<TrendingPlayer[]>("trending") ?? [],
     tierCharts,
     fpRanks,
+    fpRos,
+    fpWeekRanks,
     week,
   };
 }

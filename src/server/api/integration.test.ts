@@ -88,6 +88,11 @@ beforeAll(async () => {
   storeSet("projections_2026_3", week);
   storeSet("league_espn", league);
   storeSet("trending", [{ playerId: "fa1", count: 9000, direction: "add" }]);
+  storeSet("fp_ros_ppr", [
+    { name: "Bell Cow", team: "SF", position: "RB", rank: 1, tier: 1 },
+    { name: "Alpha Receiver", team: "MIN", position: "WR", rank: 2, tier: 1 },
+  ]);
+  storeSet("fp_week_ranks_ppr", [{ name: "Bell Cow", team: "SF", position: "RB", rank: 3 }]);
   app = await buildApp();
 });
 
@@ -150,6 +155,24 @@ describe("league API end-to-end", () => {
     expect(Array.isArray(body.mispricings)).toBe(true);
     expect(Array.isArray(body.regression)).toBe(true);
     expect(Array.isArray(body.volatile)).toBe(true);
+  });
+
+  it("ranks: ROS board leads with FantasyPros ECR, week board carries pos ranks", async () => {
+    const ros = await app.inject({ method: "GET", url: "/api/league/espn:99/ranks?view=ros" });
+    expect(ros.statusCode).toBe(200);
+    const rosBody = ros.json();
+    expect(rosBody.hasFpRos).toBe(true);
+    expect(rosBody.rows[0]).toMatchObject({ id: "r1", rosRank: 1, rosTier: 1 });
+    expect(rosBody.rows[1]).toMatchObject({ id: "w1", rosRank: 2 });
+    // players without an FP rank still appear, after the ranked ones
+    expect(rosBody.rows.length).toBeGreaterThan(2);
+
+    const week = await app.inject({ method: "GET", url: "/api/league/espn:99/ranks?view=week" });
+    expect(week.statusCode).toBe(200);
+    const weekBody = week.json();
+    expect(weekBody.week).toBe(3);
+    const bellCow = weekBody.rows.find((r: { id: string }) => r.id === "r1");
+    expect(bellCow.weekPosRank).toBe(3);
   });
 
   it("league player search scopes to the league context", async () => {

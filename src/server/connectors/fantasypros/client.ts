@@ -27,6 +27,23 @@ const RANKINGS_PAGES: Record<string, string> = {
   std: "consensus-cheatsheets.php",
 };
 
+/** Rest-of-season overall rankings — same ecrData blob, refreshed all season. */
+const ROS_PAGES: Record<string, string> = {
+  ppr: "ros-ppr-overall.php",
+  half: "ros-half-point-ppr-overall.php",
+  std: "ros-overall.php",
+};
+
+/**
+ * Weekly positional rankings pages. QB/K/DST rankings don't vary by
+ * reception scoring, so those pages are shared across formats.
+ */
+const WEEK_RANKING_PAGES: Record<string, Record<string, string>> = {
+  ppr: { QB: "qb.php", RB: "ppr-rb.php", WR: "ppr-wr.php", TE: "ppr-te.php", K: "k.php", DST: "dst.php" },
+  half: { QB: "qb.php", RB: "half-point-ppr-rb.php", WR: "half-point-ppr-wr.php", TE: "half-point-ppr-te.php", K: "k.php", DST: "dst.php" },
+  std: { QB: "qb.php", RB: "rb.php", WR: "wr.php", TE: "te.php", K: "k.php", DST: "dst.php" },
+};
+
 const PROJECTION_SCORING_PARAM: Record<string, string> = {
   ppr: "PPR",
   half: "HALF",
@@ -110,17 +127,46 @@ export async function fetchAutoRankings(scoring: "ppr" | "half" | "std"): Promis
 
 export async function fetchAutoProjections(
   scoring: "ppr" | "half" | "std",
+  week: number | "draft" = "draft",
 ): Promise<FpProjectionRow[]> {
   const out: FpProjectionRow[] = [];
   for (const pos of PROJECTION_POSITIONS) {
     try {
       const text = await fetchText(
-        `${BASE}/projections/${pos}.php?week=draft&scoring=${PROJECTION_SCORING_PARAM[scoring]}&export=xls`,
+        `${BASE}/projections/${pos}.php?week=${week}&scoring=${PROJECTION_SCORING_PARAM[scoring]}&export=xls`,
         { headers: BROWSER_HEADERS, timeoutMs: 20_000 },
       );
       out.push(...parseProjectionsXls(text, pos));
     } catch {
       // per-position failures are tolerable — partial data still blends
+    }
+  }
+  return out;
+}
+
+export async function fetchRosRankings(scoring: "ppr" | "half" | "std"): Promise<FpRankingRow[]> {
+  const html = await fetchText(`${BASE}/rankings/${ROS_PAGES[scoring]}`, {
+    headers: BROWSER_HEADERS,
+    timeoutMs: 20_000,
+  });
+  return parseEcrHtml(html);
+}
+
+/**
+ * Weekly rankings, merged across positions. Ranks are positional (WR12 means
+ * 12th among WRs this week), which is how start/sit decisions read anyway.
+ */
+export async function fetchWeekRankings(scoring: "ppr" | "half" | "std"): Promise<FpRankingRow[]> {
+  const out: FpRankingRow[] = [];
+  for (const [pos, page] of Object.entries(WEEK_RANKING_PAGES[scoring] ?? {})) {
+    try {
+      const html = await fetchText(`${BASE}/rankings/${page}`, {
+        headers: BROWSER_HEADERS,
+        timeoutMs: 20_000,
+      });
+      for (const row of parseEcrHtml(html)) out.push({ ...row, position: pos });
+    } catch {
+      // partial weekly coverage still useful
     }
   }
   return out;
