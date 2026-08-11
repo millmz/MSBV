@@ -31,6 +31,11 @@ const SettingsSchema = z
         teamKey: z.string().optional(),
       })
       .optional(),
+    fantasypros: z
+      .object({
+        apiKey: z.string().optional(),
+      })
+      .optional(),
     season: z.number().optional(),
   })
   .default({});
@@ -54,6 +59,7 @@ export function writeSettingsFile(patch: Partial<Settings>): Settings {
     ...patch,
     espn: { ...current.espn, ...patch.espn },
     yahoo: { ...current.yahoo, ...patch.yahoo },
+    fantasypros: { ...current.fantasypros, ...patch.fantasypros },
   };
   mkdirSync(dirname(settingsPath()), { recursive: true });
   writeFileSync(settingsPath(), JSON.stringify(next, null, 2));
@@ -82,6 +88,9 @@ export function getConfig() {
       refreshToken: env.YAHOO_REFRESH_TOKEN ?? file.yahoo?.refreshToken ?? "",
       leagueKey: env.YAHOO_LEAGUE_KEY ?? file.yahoo?.leagueKey ?? "",
       teamKey: file.yahoo?.teamKey,
+    },
+    fantasypros: {
+      apiKey: env.FANTASYPROS_API_KEY ?? file.fantasypros?.apiKey ?? "",
     },
   };
 }

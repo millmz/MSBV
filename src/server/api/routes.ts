@@ -82,15 +82,23 @@ export async function registerApiRoutes(app: FastifyInstance) {
     },
   );
 
+  app.post<{ Body: { apiKey?: string } }>("/api/fantasypros/key", async (req, reply) => {
+    const apiKey = req.body?.apiKey?.trim();
+    if (!apiKey) return reply.code(400).send({ error: "paste your FantasyPros API key" });
+    writeSettingsFile({ fantasypros: { apiKey } });
+    return { ok: true };
+  });
+
   app.get("/api/fantasypros/status", async () => {
+    const apiConfigured = Boolean(getConfig().fantasypros.apiKey);
     const datasets: {
-      kind: "rankings" | "projections";
+      kind: string;
       scoring: string;
       rows: number;
       ageMinutes: number;
     }[] = [];
     for (const scoring of FP_SCORINGS) {
-      for (const kind of ["rankings", "projections"] as const) {
+      for (const kind of ["rankings", "projections", "ros", "week_ranks", "week_projections"] as const) {
         const rows = storeGet<(FpRankingRow | FpProjectionRow)[]>(`fp_${kind}_${scoring}`);
         const age = storeAgeMs(`fp_${kind}_${scoring}`);
         if (rows && Number.isFinite(age)) {
@@ -98,7 +106,7 @@ export async function registerApiRoutes(app: FastifyInstance) {
         }
       }
     }
-    return { datasets };
+    return { apiConfigured, datasets };
   });
 
   app.get<{ Querystring: { q?: string } }>("/api/players/search", async (req) => {

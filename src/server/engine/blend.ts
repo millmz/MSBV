@@ -28,6 +28,24 @@ export type Blend = {
 
 export type BlendMap = Map<string, Blend>;
 
+/**
+ * Blend weights. FantasyPros is the paid expert-consensus layer — weighted
+ * heaviest by design; Sleeper and the platform projection are supporting
+ * opinions. Volatility detection still treats sources equally.
+ */
+const SOURCE_WEIGHTS: Record<string, number> = { sleeper: 1, platform: 1, fantasypros: 2.5 };
+
+function weightedMean(sources: Record<string, number>): number {
+  let sum = 0;
+  let wsum = 0;
+  for (const [name, value] of Object.entries(sources)) {
+    const w = SOURCE_WEIGHTS[name] ?? 1;
+    sum += value * w;
+    wsum += w;
+  }
+  return wsum > 0 ? sum / wsum : NaN;
+}
+
 /** Weekly score variability priors by position (CV of weekly outcomes). */
 const POSITION_CV: Record<Position, number> = {
   QB: 0.2,
@@ -78,7 +96,7 @@ export function computeBlends(opts: {
     if (fp !== undefined && fp > 0) sources.fantasypros = fp;
 
     const values = Object.values(sources);
-    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const mean = weightedMean(sources);
     if (!Number.isFinite(mean)) continue;
 
     const disagreement = stdev(values);
@@ -94,9 +112,15 @@ export function computeBlends(opts: {
     });
   }
 
-  // Platform-only players (platform projects someone Sleeper doesn't).
-  if (platformProjections) {
-    for (const [playerId, points] of platformProjections) {
+  // Players Sleeper doesn't project but another source does — without this
+  // backfill they'd vanish from every board.
+  const backfills: [string, Map<string, number> | undefined][] = [
+    ["platform", platformProjections],
+    ["fantasypros", fpProjections],
+  ];
+  for (const [sourceName, map] of backfills) {
+    if (!map) continue;
+    for (const [playerId, points] of map) {
       if (out.has(playerId) || points <= 0) continue;
       const player = players.get(playerId);
       if (!player) continue;
@@ -106,7 +130,7 @@ export function computeBlends(opts: {
         points: round1(points),
         floor: round1(Math.max(0, points - prior)),
         ceiling: round1(points + prior),
-        sources: { platform: points },
+        sources: { [sourceName]: points },
         volatile: false,
       });
     }

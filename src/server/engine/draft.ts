@@ -40,7 +40,14 @@ export function buildCheatSheet(
       vor: entry.vor,
     });
   }
-  rows.sort((a, b) => b.vor - a.vor);
+  // Kickers and defenses never lead a draft board: their weekly variance
+  // erases any projected edge, so they sort behind every skill player and
+  // only among themselves by value — end-of-draft picks, where they belong.
+  const lateGroup = (id: string) => {
+    const pos = players.get(id)?.position;
+    return pos === "K" || pos === "DST" ? 1 : 0;
+  };
+  rows.sort((a, b) => lateGroup(a.playerId) - lateGroup(b.playerId) || b.vor - a.vor);
   rows.length = Math.min(rows.length, limit);
 
   // ADP proxy: Sleeper search rank ordering across drafted-relevant players.

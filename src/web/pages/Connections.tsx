@@ -287,7 +287,16 @@ YAHOO_LEAGUE_KEY=${env.YAHOO_LEAGUE_KEY ?? ""}`}
 }
 
 type FpStatus = {
-  datasets: { kind: "rankings" | "projections"; scoring: string; rows: number; ageMinutes: number }[];
+  apiConfigured: boolean;
+  datasets: { kind: string; scoring: string; rows: number; ageMinutes: number }[];
+};
+
+const FP_KIND_LABELS: Record<string, string> = {
+  rankings: "Draft rankings (ECR)",
+  projections: "Season projections",
+  ros: "Rest-of-season rankings",
+  week_ranks: "Weekly rankings",
+  week_projections: "Weekly projections",
 };
 
 function FantasyProsCard() {
@@ -296,6 +305,25 @@ function FantasyProsCard() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [apiKey, setApiKey] = useState("");
+
+  const saveKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await api.post("/api/fantasypros/key", { apiKey });
+      await api.post("/api/sync");
+      setApiKey("");
+      setMessage("API key saved — first API sync ran; check the datasets below.");
+      api.get<FpStatus>("/api/fantasypros/status").then(setStatus).catch(() => {});
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "failed");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const load = () => {
     api.get<FpStatus>("/api/fantasypros/status").then(setStatus).catch(() => {});
@@ -334,8 +362,8 @@ function FantasyProsCard() {
     <div className="card">
       <h2>
         FantasyPros{" "}
-        <span className={connected ? "good" : "muted"}>
-          {connected ? "● loaded" : "○ no data yet"}
+        <span className={status?.apiConfigured ? "good" : connected ? "good" : "muted"}>
+          {status?.apiConfigured ? "● API connected" : connected ? "● loaded" : "○ no data yet"}
         </span>{" "}
         <button className="ghost" style={{ float: "right" }} onClick={() => setOpen(!open)}>
           {open ? "Hide" : connected ? "Update" : "Add"}
@@ -344,12 +372,25 @@ function FantasyProsCard() {
       {open && (
         <>
           <p className="muted">
-            Rankings add expert-consensus rank (ECR) to the draft cheat sheet; projections join
-            Sleeper and your platform as a third blend source. MSBV <b>auto-pulls</b> the consensus
-            data for standard scorings daily — no exporting needed. Uploading a CSV export here
-            overrides the auto-pull for that dataset for a week (useful for custom scoring): on
-            fantasypros.com open <b>Rankings</b> or <b>Projections</b> and hit <b>Export</b> → CSV.
+            FantasyPros is the <b>heaviest-weighted layer</b> in the consensus blend and drives the
+            ECR columns on the draft and rankings boards. With an API key, everything syncs from
+            the official API automatically. Without one, MSBV falls back to pulling the public
+            consensus pages, and CSV exports uploaded below override either source for a week
+            (useful for custom scoring).
           </p>
+          <form onSubmit={saveKey}>
+            <label>{status?.apiConfigured ? "Replace API key" : "FantasyPros API key"}</label>
+            <input
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder={status?.apiConfigured ? "••••••••  (saved)" : "paste your key"}
+            />
+            <p>
+              <button className="primary" type="submit" disabled={busy || !apiKey.trim()}>
+                {busy ? "Saving + syncing…" : "Save key & sync now"}
+              </button>
+            </p>
+          </form>
           <label>Scoring format of the export</label>
           <select value={scoring} onChange={(e) => setScoring(e.target.value)}>
             <option value="ppr">PPR</option>
@@ -368,7 +409,7 @@ function FantasyProsCard() {
               <tbody>
                 {status!.datasets.map((d) => (
                   <tr key={`${d.kind}-${d.scoring}`}>
-                    <td>{d.kind === "rankings" ? "Rankings (ECR)" : "Projections"}</td>
+                    <td>{FP_KIND_LABELS[d.kind] ?? d.kind}</td>
                     <td className="muted">{d.scoring.toUpperCase()}</td>
                     <td className="num">{d.rows}</td>
                     <td className="num muted">

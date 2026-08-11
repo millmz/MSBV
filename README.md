@@ -35,6 +35,7 @@ Everything can be entered on the in-app **Setup** screen; environment variables 
 | `SEASON` | Override the NFL season year (defaults to the current season) |
 | `ESPN_LEAGUE_ID`, `ESPN_S2`, `ESPN_SWID` | ESPN league + private-league cookies |
 | `YAHOO_CLIENT_ID`, `YAHOO_CLIENT_SECRET`, `YAHOO_REFRESH_TOKEN`, `YAHOO_LEAGUE_KEY` | Yahoo OAuth app + tokens |
+| `FANTASYPROS_API_KEY` | Official FantasyPros API key — the primary (heaviest-weighted) rankings/projections source |
 | `MSBV_DATA_DIR` | Where the JSON cache lives (default `./data`) |
 
 ### Connecting ESPN (~2 minutes)
