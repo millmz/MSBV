@@ -209,6 +209,11 @@ export async function registerLeagueRoutes(app: FastifyInstance) {
       // K/DST never belong at the top of a board — variance swamps any
       // projected edge — so they sort behind skill players in every view.
       const late = (pos?: string) => (pos === "K" || pos === "DST" || pos === "DEF" ? 1 : 0);
+      // ...but the row cap must never squeeze them off the board entirely.
+      const capWithKd = <T extends { position?: string }>(sorted: T[], cap: number): T[] => [
+        ...sorted.filter((r) => !late(r.position)).slice(0, cap),
+        ...sorted.filter((r) => late(r.position)).slice(0, 40),
+      ];
 
       if (view === "ros") {
         // Rest of season: FantasyPros ROS ECR ordering where available,
@@ -229,9 +234,8 @@ export async function registerLeagueRoutes(app: FastifyInstance) {
             if (a.rosRank !== undefined) return -1;
             if (b.rosRank !== undefined) return 1;
             return (b.season?.points ?? 0) - (a.season?.points ?? 0);
-          })
-          .slice(0, 250);
-        return { view, week: ctx.week, hasFpRos: ctx.fpRos.size > 0, rows };
+          });
+        return { view, week: ctx.week, hasFpRos: ctx.fpRos.size > 0, rows: capWithKd(rows, 220) };
       }
 
       if (ctx.week === 0) return { view, week: 0, rows: [] };
@@ -246,9 +250,8 @@ export async function registerLeagueRoutes(app: FastifyInstance) {
         .sort(
           (a, b) =>
             late(a.position) - late(b.position) || (b.week?.points ?? 0) - (a.week?.points ?? 0),
-        )
-        .slice(0, 250);
-      return { view, week: ctx.week, hasFpWeek: ctx.fpWeekRanks.size > 0, rows };
+        );
+      return { view, week: ctx.week, hasFpWeek: ctx.fpWeekRanks.size > 0, rows: capWithKd(rows, 220) };
     },
   );
 
