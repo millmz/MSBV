@@ -1,4 +1,4 @@
-# MSBV — Fantasy Football Season Companion 🏈
+# Lemon League — Fantasy Football Season Companion
 
 A WalterPicks-style platform for one owner, two leagues: syncs your **ESPN** and **Yahoo** fantasy football teams and gives you draft tools, weekly start/sit calls, waiver-wire targets, add/drop advice, and trade evaluation — all scored to each league's exact settings.
 

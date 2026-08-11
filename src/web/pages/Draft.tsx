@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { useLeagues } from "../App.js";
-import { LoadingOrError, NoLeague, PosPill, useLeagueData } from "../components.js";
+import { LoadingOrError, NoLeague, PlayerAvatar, PosPill, useLeagueData } from "../components.js";
 
 type CheatSheet = {
   scoringLabel: string;
@@ -171,9 +171,14 @@ export function Draft() {
                 <tr key={r.playerId}>
                   <td className="muted">{r.overallRank}</td>
                   <td>
-                    <PosPill position={r.position ?? "?"} /> <b>{r.name}</b>{" "}
-                    <span className="muted">{r.team}</span>
-                    {r.injuryStatus && <span className="warn"> {r.injuryStatus === "Questionable" ? "Q" : r.injuryStatus}</span>}
+                    <span className="cell-player">
+                      <PlayerAvatar id={r.playerId} name={r.name} position={r.position} team={r.team} size={26} />
+                      <span>
+                        <b>{r.name}</b> <span className="muted">{r.team}</span>{" "}
+                        <PosPill position={r.position ?? "?"} />
+                        {r.injuryStatus && <span className="warn"> {r.injuryStatus === "Questionable" ? "Q" : r.injuryStatus}</span>}
+                      </span>
+                    </span>
                   </td>
                   <td className="muted">T{r.tier}</td>
                   <td className="num">{r.points.toFixed(0)}</td>

@@ -56,6 +56,53 @@ export function PosPill({ position }: { position: string }) {
   return <span className={`pill pos-${position}`}>{position}</span>;
 }
 
+/**
+ * Player headshot from the Sleeper CDN (canonical ids are Sleeper ids);
+ * team logo for defenses; initials when no image resolves.
+ */
+export function PlayerAvatar({
+  id,
+  name,
+  position,
+  team,
+  size = 30,
+}: {
+  id: string;
+  name: string;
+  position?: string;
+  team?: string;
+  size?: number;
+}) {
+  const [failed, setFailed] = useState(false);
+  const isDst = position === "DST" || position === "DEF";
+  const src = isDst
+    ? `https://sleepercdn.com/images/team_logos/nfl/${(team ?? id).toLowerCase()}.png`
+    : `https://sleepercdn.com/content/nfl/players/thumb/${id}.jpg`;
+  if (failed) {
+    const initials = name
+      .split(/\s+/)
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+    return (
+      <span className="avatar avatar-fb" style={{ width: size, height: size, fontSize: size * 0.36 }}>
+        {initials}
+      </span>
+    );
+  }
+  return (
+    <img
+      className="avatar"
+      style={{ width: size, height: size }}
+      src={src}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export function Injury({ status }: { status?: string }) {
   if (!status) return null;
   const short = status === "Questionable" ? "Q" : status === "Doubtful" ? "D" : status;
@@ -69,12 +116,15 @@ export function Injury({ status }: { status?: string }) {
 
 export function PlayerLine({ p, right }: { p: PlayerCard; right?: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0" }}>
-      <PosPill position={p.position} />
-      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+    <div className="player-line">
+      <PlayerAvatar id={p.id} name={p.name} position={p.position} team={p.team} />
+      <span className="player-line-name">
         <b>{p.name}</b>
-        <span className="muted"> {p.team}</span>
-        <Injury status={p.injuryStatus} />
+        <span className="player-line-meta">
+          <PosPill position={p.position} />
+          <span className="muted">{p.team}</span>
+          <Injury status={p.injuryStatus} />
+        </span>
       </span>
       {right}
     </div>
@@ -90,7 +140,7 @@ export function WeekPoints({ p }: { p: PlayerCard }) {
         {" "}
         {p.week.floor.toFixed(0)}–{p.week.ceiling.toFixed(0)}
       </span>
-      {p.week.volatile && <span className="warn" title="sources disagree"> ⚡</span>}
+      {p.week.volatile && <span className="warn" title="projection sources disagree"> ±</span>}
     </span>
   );
 }
