@@ -206,6 +206,10 @@ export async function registerLeagueRoutes(app: FastifyInstance) {
         for (const r of team.roster) rosteredBy.set(r.playerId, team.name);
       }
 
+      // K/DST never belong at the top of a board — variance swamps any
+      // projected edge — so they sort behind skill players in every view.
+      const late = (pos?: string) => (pos === "K" || pos === "DST" || pos === "DEF" ? 1 : 0);
+
       if (view === "ros") {
         // Rest of season: FantasyPros ROS ECR ordering where available,
         // season blend as the fallback spine so the board never goes empty.
@@ -219,6 +223,8 @@ export async function registerLeagueRoutes(app: FastifyInstance) {
             rosteredBy: rosteredBy.get(id),
           }))
           .sort((a, b) => {
+            const lateDiff = late(a.position) - late(b.position);
+            if (lateDiff !== 0) return lateDiff;
             if (a.rosRank !== undefined && b.rosRank !== undefined) return a.rosRank - b.rosRank;
             if (a.rosRank !== undefined) return -1;
             if (b.rosRank !== undefined) return 1;
@@ -237,7 +243,10 @@ export async function registerLeagueRoutes(app: FastifyInstance) {
           weekPosRank: ctx.fpWeekRanks.get(id),
           rosteredBy: rosteredBy.get(id),
         }))
-        .sort((a, b) => (b.week?.points ?? 0) - (a.week?.points ?? 0))
+        .sort(
+          (a, b) =>
+            late(a.position) - late(b.position) || (b.week?.points ?? 0) - (a.week?.points ?? 0),
+        )
         .slice(0, 250);
       return { view, week: ctx.week, hasFpWeek: ctx.fpWeekRanks.size > 0, rows };
     },

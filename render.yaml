@@ -27,3 +27,5 @@ services:
         sync: false
       - key: YAHOO_LEAGUE_KEY
         sync: false
+      - key: FANTASYPROS_API_KEY
+        sync: false
