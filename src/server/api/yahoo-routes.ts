@@ -2,11 +2,27 @@ import { randomBytes } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { getConfig, writeSettingsFile } from "../config.js";
 import { syncYahooLeague } from "../connectors/yahoo/sync.js";
-import { authorizeUrl, exchangeCode, clearTokenCache } from "../connectors/yahoo/oauth.js";
+import { authorizeUrl, exchangeCode, clearTokenCache, useOob } from "../connectors/yahoo/oauth.js";
 import { fetchUserLeaguesRaw } from "../connectors/yahoo/client.js";
 import { mapUserLeagues } from "../connectors/yahoo/map.js";
+import type { FastifyBaseLogger } from "fastify";
 
 const STATE_COOKIE = "msbv_yahoo_state";
+
+/** Post-token league discovery: auto-pick a lone NFL league, else ask. */
+async function finishConnect(log: FastifyBaseLogger): Promise<"connected" | "pick_league"> {
+  try {
+    const leagues = mapUserLeagues(await fetchUserLeaguesRaw(getConfig().season));
+    if (leagues.length === 1) {
+      writeSettingsFile({ yahoo: { leagueKey: leagues[0]!.leagueKey } });
+      await syncYahooLeague(log);
+      return "connected";
+    }
+  } catch (err) {
+    log.warn({ err }, "yahoo league discovery failed");
+  }
+  return "pick_league";
+}
 
 export async function registerYahooRoutes(app: FastifyInstance) {
   /** Step 1: save the dev-app credentials, hand back the consent URL. */
@@ -28,9 +44,29 @@ export async function registerYahooRoutes(app: FastifyInstance) {
         sameSite: "lax",
         maxAge: 600,
       });
-      return { authorizeUrl: authorizeUrl(state), redirectUri: `${getConfig().baseUrl}/api/yahoo/callback` };
+      return {
+        authorizeUrl: authorizeUrl(state),
+        mode: useOob() ? "oob" : "callback",
+        redirectUri: `${getConfig().baseUrl}/api/yahoo/callback`,
+      };
     },
   );
+
+  /** Step 2 (oob mode): the user pastes the verification code Yahoo showed. */
+  app.post<{ Body: { code?: string } }>("/api/yahoo/code", async (req, reply) => {
+    const code = req.body?.code?.trim();
+    if (!code) return reply.code(400).send({ error: "paste the verification code from Yahoo" });
+    try {
+      await exchangeCode(code);
+    } catch (err) {
+      req.log.warn({ err }, "yahoo oob code exchange failed");
+      const detail = err instanceof Error ? err.message : "";
+      return reply.code(400).send({
+        error: `Yahoo rejected the code — codes are single-use and expire fast; try Connect again. ${detail}`.trim(),
+      });
+    }
+    return { status: await finishConnect(req.log) };
+  });
 
   /** Step 2: Yahoo redirects back here with a one-time code. */
   app.get<{ Querystring: { code?: string; state?: string; error?: string } }>(
@@ -48,19 +84,8 @@ export async function registerYahooRoutes(app: FastifyInstance) {
         req.log.warn({ err }, "yahoo code exchange failed");
         return reply.redirect("/connections?yahoo_error=token_exchange_failed");
       }
-      // If the login has exactly one NFL league this season, pick it automatically.
-      try {
-        const leagues = mapUserLeagues(await fetchUserLeaguesRaw(getConfig().season));
-        if (leagues.length === 1) {
-          writeSettingsFile({ yahoo: { leagueKey: leagues[0]!.leagueKey } });
-          await syncYahooLeague(req.log);
-          return reply.redirect("/connections?yahoo=connected");
-        }
-        return reply.redirect("/connections?yahoo=pick_league");
-      } catch (err) {
-        req.log.warn({ err }, "yahoo league discovery failed");
-        return reply.redirect("/connections?yahoo=pick_league");
-      }
+      const status = await finishConnect(req.log);
+      return reply.redirect(status === "connected" ? "/connections?yahoo=connected" : "/connections?yahoo=pick_league");
     },
   );
 

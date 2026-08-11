@@ -121,6 +121,8 @@ function YahooCard({ config, onChange }: { config: ConfigInfo; onChange: () => v
   const [error, setError] = useState(yahooError ? `Yahoo error: ${yahooError}` : "");
   const [leagues, setLeagues] = useState<{ leagueKey: string; name: string }[] | null>(null);
   const [env, setEnv] = useState<Record<string, string | null> | null>(null);
+  const [oobPending, setOobPending] = useState(false);
+  const [oobCode, setOobCode] = useState("");
 
   useEffect(() => {
     if (needsPick) {
@@ -138,10 +140,37 @@ function YahooCard({ config, onChange }: { config: ConfigInfo; onChange: () => v
     setBusy(true);
     setError("");
     try {
-      const res = await api.post<{ authorizeUrl: string }>("/api/yahoo/app", { clientId, clientSecret });
-      window.location.href = res.authorizeUrl; // off to Yahoo's consent page
+      const res = await api.post<{ authorizeUrl: string; mode: "oob" | "callback" }>(
+        "/api/yahoo/app",
+        { clientId, clientSecret },
+      );
+      if (res.mode === "oob") {
+        // Yahoo can't redirect back to a local http server, so it will show a
+        // verification code on screen instead — open consent in a new tab.
+        window.open(res.authorizeUrl, "_blank", "noopener");
+        setOobPending(true);
+        setBusy(false);
+      } else {
+        window.location.href = res.authorizeUrl; // off to Yahoo's consent page
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "failed");
+      setBusy(false);
+    }
+  };
+
+  const submitOobCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await api.post<{ status: string }>("/api/yahoo/code", { code: oobCode });
+      setOobPending(false);
+      setOobCode("");
+      onChange(); // config reload shows connected state or the league picker
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "failed");
+    } finally {
       setBusy(false);
     }
   };
@@ -183,16 +212,28 @@ function YahooCard({ config, onChange }: { config: ConfigInfo; onChange: () => v
           ))}
         </div>
       )}
-      {open && !config.yahoo.connected && (
+      {open && !config.yahoo.connected && !oobPending && (
         <form onSubmit={startOAuth}>
           <p className="muted">
             One-time setup (~10 min): create a free app at{" "}
             <a href="https://developer.yahoo.com/apps/create/" target="_blank" rel="noreferrer">
               developer.yahoo.com/apps/create
             </a>
-            . Choose <b>Confidential Client</b>, set the redirect URI to{" "}
-            <code>{window.location.origin}/api/yahoo/callback</code>, and give it{" "}
-            <b>Fantasy Sports — Read</b> permission. Then paste the credentials here.
+            . Choose <b>Confidential Client</b> and give it <b>Fantasy Sports — Read</b>{" "}
+            permission.{" "}
+            {window.location.protocol === "https:" ? (
+              <>
+                Set the redirect URI to <code>{window.location.origin}/api/yahoo/callback</code>.
+              </>
+            ) : (
+              <>
+                Yahoo's form requires an <b>https</b> redirect URI — enter your future hosted URL
+                (e.g. <code>https://msbv.onrender.com/api/yahoo/callback</code>); it isn't used
+                when connecting locally. After you approve, Yahoo shows a short code to paste back
+                here instead.
+              </>
+            )}{" "}
+            Then paste the credentials below.
           </p>
           <label>Client ID</label>
           <input value={clientId} onChange={(e) => setClientId(e.target.value)} />
@@ -200,7 +241,30 @@ function YahooCard({ config, onChange }: { config: ConfigInfo; onChange: () => v
           <input value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} />
           <p>
             <button className="primary" disabled={busy || !clientId || !clientSecret} type="submit">
-              {busy ? "Redirecting…" : "Connect Yahoo"}
+              {busy ? "Opening Yahoo…" : "Connect Yahoo"}
+            </button>
+          </p>
+        </form>
+      )}
+      {open && !config.yahoo.connected && oobPending && (
+        <form onSubmit={submitOobCode}>
+          <p className="muted">
+            A Yahoo tab just opened — sign in, approve access, and Yahoo will display a short
+            verification code. Paste it here. (No tab? Allow pop-ups and hit Connect again.)
+          </p>
+          <label>Verification code from Yahoo</label>
+          <input
+            value={oobCode}
+            onChange={(e) => setOobCode(e.target.value)}
+            placeholder="e.g. abc123"
+            autoFocus
+          />
+          <p>
+            <button className="primary" disabled={busy || !oobCode.trim()} type="submit">
+              {busy ? "Connecting…" : "Finish Yahoo connection"}
+            </button>{" "}
+            <button className="ghost" type="button" onClick={() => setOobPending(false)}>
+              Start over
             </button>
           </p>
         </form>
