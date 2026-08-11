@@ -12,6 +12,20 @@ import { rosterNeeds } from "./draft.js";
  * you banked it.
  */
 
+/**
+ * The market the bots draft from: FantasyPros consensus (ECR) when synced —
+ * the list real leaguemates are looking at — falling back to the ADP proxy.
+ */
+export function buildMarketOrder(
+  ids: Iterable<string>,
+  players: Map<string, Player>,
+  fpRanks?: Map<string, number>,
+): string[] {
+  const key = (id: string) =>
+    fpRanks?.get(id) ?? (players.get(id)?.searchRank ?? 9000) + 500;
+  return [...ids].sort((a, b) => key(a) - key(b));
+}
+
 /** Team index (0-based) on the clock for a 0-based overall pick, snake order. */
 export function snakeTeamIndex(overall: number, teamCount: number): number {
   const round = Math.floor(overall / teamCount);
