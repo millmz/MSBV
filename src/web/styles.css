@@ -323,6 +323,51 @@ tr:last-child td { border-bottom: none; }
 .stat-vs { color: var(--ink-faint); font-size: 0.8rem; font-weight: 600; }
 
 /* --------------------------------------------------------------------------
+   Mock draft room
+   -------------------------------------------------------------------------- */
+
+.mock-status {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 0 12px;
+}
+.suggest-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;
+}
+.suggest-card {
+  border: 1px solid var(--line); border-radius: var(--r-m); padding: 12px;
+  background: var(--well);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.suggest-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.suggest-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.88rem; }
+.suggest-reason { margin: 0; font-size: 0.74rem; color: var(--ink-dim); line-height: 1.4; flex: 1; }
+.suggest-card button { width: 100%; }
+
+.mock-board { border-collapse: separate; border-spacing: 3px; }
+.mock-board th { border-bottom: none; padding: 4px 6px; text-align: center; }
+.mock-cell {
+  border: 1px solid var(--line); border-radius: 7px; padding: 4px 7px;
+  min-width: 86px; font-size: 0.72rem; background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.mock-cell.mine { background: rgba(255, 200, 0, 0.12); border-color: rgba(201, 151, 0, 0.4); }
+.mock-chip { display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; }
+.mock-chip-pos { font-weight: 800; font-size: 0.62rem; opacity: 0.75; }
+
+.slot-list { display: flex; flex-direction: column; }
+.slot-row {
+  display: flex; align-items: center; gap: 9px; padding: 5px 0;
+  border-bottom: 1px solid var(--line); font-size: 0.88rem;
+}
+.slot-row:last-child { border-bottom: none; }
+.slot-tag {
+  width: 34px; flex: none; text-align: center;
+  font-size: 0.64rem; font-weight: 800; letter-spacing: 0.04em;
+  color: var(--ink-faint); background: var(--well);
+  border: 1px solid var(--line); border-radius: 6px; padding: 3px 0;
+}
+
+/* --------------------------------------------------------------------------
    States
    -------------------------------------------------------------------------- */
 

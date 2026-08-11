@@ -144,6 +144,7 @@ type MockState = {
   done: boolean;
   round: number;
   overall: number;
+  slots?: Record<string, number>;
   picks: (MockCard & { overall: number; teamIndex: number; mine: boolean })[];
   myRoster: MockCard[];
   advice: (MockCard & { score: number; vor: number; tier: number; reasons: string[] })[];
@@ -156,7 +157,52 @@ type MockReport = {
   teams: { teamIndex: number; mine: boolean; rank: number; starterPoints: number; starters: (MockCard & { slot: string; points: number })[] }[];
 };
 
-function MockRoom() {
+type SheetRow = CheatSheet["rows"][number];
+
+const SLOT_ORDER = ["QB", "RB", "WR", "TE", "FLEX", "SUPERFLEX", "WRRB", "K", "DST"];
+const FLEX_OK: Record<string, string[]> = {
+  FLEX: ["RB", "WR", "TE"],
+  SUPERFLEX: ["QB", "RB", "WR", "TE"],
+  WRRB: ["RB", "WR"],
+};
+
+/** Greedy display assignment of drafted players into lineup slots. */
+function assignSlots(roster: MockCard[], slots: Record<string, number>) {
+  const rows: { slot: string; p?: MockCard }[] = [];
+  const used = new Set<string>();
+  const pool = [...roster].sort((a, b) => (b.seasonPoints ?? 0) - (a.seasonPoints ?? 0));
+  const take = (slot: string, ok: (p: MockCard) => boolean) => {
+    const p = pool.find((c) => !used.has(c.id) && ok(c));
+    if (p) used.add(p.id);
+    rows.push({ slot, p });
+  };
+  for (const slot of SLOT_ORDER) {
+    for (let i = 0; i < (slots[slot] ?? 0); i++) {
+      const flex = FLEX_OK[slot];
+      take(slot, flex ? (p) => flex.includes(p.position) : (p) => p.position === slot || (slot === "DST" && p.position === "DEF"));
+    }
+  }
+  for (const p of pool.filter((c) => !used.has(c.id))) rows.push({ slot: "BN", p });
+  return rows;
+}
+
+function gradeFor(edge: number): { letter: string; cls: string } {
+  if (edge >= 8) return { letter: "A", cls: "good" };
+  if (edge >= 3) return { letter: "B", cls: "good" };
+  if (edge >= -3) return { letter: "C", cls: "muted" };
+  if (edge >= -8) return { letter: "D", cls: "warn" };
+  return { letter: "F", cls: "bad" };
+}
+
+function overallGrade(rank: number, teams: number): string {
+  if (rank === 1) return "A+";
+  if (rank <= Math.ceil(teams / 4)) return "A";
+  if (rank <= Math.ceil(teams / 2)) return "B";
+  if (rank <= Math.ceil((3 * teams) / 4)) return "C";
+  return "D";
+}
+
+function MockRoom({ board }: { board: SheetRow[] }) {
   const { selected } = useLeagues();
   const [teamCount, setTeamCount] = useState(10);
   const [slot, setSlot] = useState(5);
@@ -164,6 +210,9 @@ function MockRoom() {
   const [report, setReport] = useState<MockReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [view, setView] = useState<"players" | "board">("players");
+  const [q, setQ] = useState("");
+  const [pos, setPos] = useState("ALL");
 
   const call = async <T,>(path: string, body: unknown): Promise<T> =>
     api.post<T>(`/api/league/${encodeURIComponent(selected!)}/mock/${path}`, body);
@@ -196,7 +245,7 @@ function MockRoom() {
     void advance({ teamCount, mySlot: slot, picks: [] });
   };
   const pick = (id: string) => {
-    if (!state) return;
+    if (!state || busy) return;
     void advance({
       teamCount: state.teamCount,
       mySlot: state.mySlot,
@@ -209,6 +258,15 @@ function MockRoom() {
     setState(null);
     setReport(null);
   };
+
+  const taken = new Set(state?.picks.map((p) => p.id) ?? []);
+  const available = board.filter(
+    (r) =>
+      !taken.has(r.playerId) &&
+      (pos === "ALL" || r.position === pos) &&
+      (q.trim() === "" || r.name.toLowerCase().includes(q.trim().toLowerCase())),
+  );
+  const myTeamIndex = (state?.mySlot ?? 1) - 1;
 
   return (
     <div className="card">
@@ -224,9 +282,9 @@ function MockRoom() {
       {!state && (
         <>
           <p className="muted">
-            Practice against a room that drafts the way leaguemates do — off the platform's market
-            ranks — while you draft off the value board. Uses this league's exact scoring and
-            roster shape; the report card at the end shows whether the arbitrage showed up.
+            Draft against a room that picks straight off the FantasyPros consensus — the list your
+            leaguemates use — while your board shows where the value actually is. This league's
+            exact scoring and roster shape; a graded report card at the end.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 120 }}>
@@ -254,52 +312,133 @@ function MockRoom() {
 
       {error && <p className="bad">{error}</p>}
 
-      {state && !state.done && (
+      {state && !state.done && !report && (
         <>
-          <p>
-            <b className="good">You're on the clock</b>
-            <span className="muted"> · round {state.round} of {state.rounds} · pick #{state.overall}</span>
-          </p>
-          <h3>The board says</h3>
-          {state.advice.slice(0, 5).map((a) => (
-            <div key={a.id} style={{ borderBottom: "1px solid var(--line)", padding: "7px 0" }}>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <PlayerAvatar id={a.id} name={a.name} position={a.position} team={a.team} size={28} />
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <b>{a.name}</b> <span className="muted">{a.team}</span> <PosPill position={a.position} />
-                  <p className="muted" style={{ margin: "1px 0 0", fontSize: "0.78rem" }}>{a.reasons.join(" ")}</p>
-                </span>
-                <span className="num muted" style={{ fontSize: "0.8rem" }}>T{a.tier} · {a.seasonPoints?.toFixed(0)}</span>
-                <button className="primary" style={{ padding: "7px 13px" }} disabled={busy} onClick={() => pick(a.id)}>
-                  Draft
-                </button>
-              </div>
-            </div>
-          ))}
-          <p>
+          <div className="mock-status">
+            <span><b className="good">On the clock</b> <span className="muted">· round {state.round}/{state.rounds} · pick #{state.overall}</span></span>
             <button className="ghost" disabled={busy || state.advice.length === 0} onClick={() => pick(state.advice[0]!.id)}>
-              {busy ? "Simulating…" : "Auto-pick best"}
+              {busy ? "Simulating…" : "Auto-pick"}
             </button>
-          </p>
-          {state.picks.length > 0 && (
-            <>
-              <h3>Last picks</h3>
-              {state.picks.slice(-6).reverse().map((p) => (
-                <p key={p.overall} style={{ margin: "3px 0", fontSize: "0.85rem" }}>
-                  <span className="muted">#{p.overall}</span> <PosPill position={p.position} /> {p.name}{" "}
-                  <span className={p.mine ? "good" : "muted"}>— {p.mine ? "YOU" : `Team ${p.teamIndex + 1}`}</span>
-                </p>
+          </div>
+
+          {state.advice.length > 0 && (
+            <div className="suggest-strip">
+              {state.advice.slice(0, 3).map((a, i) => (
+                <div key={a.id} className="suggest-card">
+                  <div className="suggest-head">
+                    <PlayerAvatar id={a.id} name={a.name} position={a.position} team={a.team} size={30} />
+                    <span style={{ minWidth: 0 }}>
+                      <b className="suggest-name">{a.name}</b>
+                      <span className="player-line-meta"><PosPill position={a.position} /><span className="muted">{a.team}</span></span>
+                    </span>
+                  </div>
+                  <p className="suggest-reason">{a.reasons[0]}</p>
+                  <button className={i === 0 ? "primary" : "ghost"} disabled={busy} onClick={() => pick(a.id)}>Draft</button>
+                </div>
               ))}
+            </div>
+          )}
+
+          <div className="league-toggle" style={{ margin: "12px 0", display: "inline-flex" }}>
+            <button className={view === "players" ? "active" : ""} onClick={() => setView("players")}>Players</button>
+            <button className={view === "board" ? "active" : ""} onClick={() => setView("board")}>Draft board</button>
+          </div>
+
+          {view === "players" && (
+            <>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+                <div className="league-toggle" style={{ margin: 0 }}>
+                  {["ALL", "QB", "RB", "WR", "TE", "K", "DST"].map((p) => (
+                    <button key={p} className={pos === p ? "active" : ""} onClick={() => setPos(p)}>{p}</button>
+                  ))}
+                </div>
+                <input placeholder="Search players" value={q} onChange={(e) => setQ(e.target.value)} style={{ maxWidth: 200, padding: "7px 11px" }} />
+              </div>
+              <div style={{ overflowX: "auto", maxHeight: 420, overflowY: "auto" }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Player</th><th className="num">Our #</th><th className="num">ECR</th>
+                      <th className="num">ADP</th><th className="num">Proj</th><th className="num">Edge</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {available.slice(0, 60).map((r) => (
+                      <tr key={r.playerId}>
+                        <td>
+                          <span className="cell-player">
+                            <PlayerAvatar id={r.playerId} name={r.name} position={r.position} team={r.team} size={26} />
+                            <span><b>{r.name}</b> <span className="muted">{r.team}</span> <PosPill position={r.position ?? "?"} /></span>
+                          </span>
+                        </td>
+                        <td className="num">{r.overallRank}</td>
+                        <td className="num muted">{r.ecr ?? "—"}</td>
+                        <td className="num muted">{r.adp ?? "—"}</td>
+                        <td className="num">{r.points.toFixed(0)}</td>
+                        <td className={`num ${r.value !== undefined && r.value > 5 ? "good" : ""}`}>{r.value !== undefined ? (r.value > 0 ? `+${r.value}` : r.value) : "—"}</td>
+                        <td><button className="ghost" style={{ padding: "5px 11px" }} disabled={busy} onClick={() => pick(r.playerId)}>Draft</button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="muted" style={{ fontSize: "0.72rem" }}>Edge = market ADP minus our rank. Positive: the room will let him fall.</p>
             </>
           )}
+
+          {view === "board" && (
+            <div style={{ overflowX: "auto" }}>
+              <table className="mock-board">
+                <thead>
+                  <tr>
+                    <th className="muted">Rd</th>
+                    {Array.from({ length: state.teamCount }, (_, t) => (
+                      <th key={t} className={t === myTeamIndex ? "good" : "muted"}>{t === myTeamIndex ? "You" : `T${t + 1}`}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: state.round }, (_, r) => (
+                    <tr key={r}>
+                      <td className="muted">{r + 1}</td>
+                      {Array.from({ length: state.teamCount }, (_, t) => {
+                        const p = state.picks.find((pk) => pk.teamIndex === t && Math.floor((pk.overall - 1) / state.teamCount) === r);
+                        return (
+                          <td key={t} className={t === myTeamIndex ? "mock-cell mine" : "mock-cell"}>
+                            {p ? (
+                              <span className={`mock-chip pos-${p.position}`}>
+                                <span className="mock-chip-pos">{p.position}</span> {p.name.split(" ").slice(-1)[0]}
+                              </span>
+                            ) : (
+                              <span className="muted">—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <h3>Your roster</h3>
-          {state.myRoster.length === 0 && <p className="muted">No picks yet.</p>}
-          {state.myRoster.map((p) => (
-            <p key={p.id} style={{ margin: "3px 0" }}>
-              <PosPill position={p.position} /> {p.name}{" "}
-              <span className="num muted">{p.seasonPoints?.toFixed(0)} pts</span>
-            </p>
-          ))}
+          <div className="slot-list">
+            {assignSlots(state.myRoster, state.slots ?? {}).map((row, i) => (
+              <div key={i} className="slot-row">
+                <span className="slot-tag">{row.slot}</span>
+                {row.p ? (
+                  <>
+                    <PlayerAvatar id={row.p.id} name={row.p.name} position={row.p.position} team={row.p.team} size={24} />
+                    <b style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.p.name}</b>
+                    <span className="num muted">{row.p.seasonPoints?.toFixed(0)}</span>
+                  </>
+                ) : (
+                  <span className="muted">empty</span>
+                )}
+              </div>
+            ))}
+          </div>
         </>
       )}
 
@@ -307,34 +446,36 @@ function MockRoom() {
         <>
           <div className="statrow">
             <div className="stat">
-              <div className={`stat-num ${report.myRank === 1 ? "good" : report.myRank <= 3 ? "" : "warn"}`}>
-                #{report.myRank}
-              </div>
+              <div className={`stat-num ${report.myRank === 1 ? "good" : ""}`}>{overallGrade(report.myRank, report.teams.length)}</div>
+              <div className="stat-label">Draft grade</div>
+            </div>
+            <div className="stat">
+              <div className="stat-num">#{report.myRank}</div>
               <div className="stat-label">of {report.teams.length} teams</div>
             </div>
             <div className="stat">
               <div className="stat-num">{report.myStarterPoints.toFixed(0)}</div>
-              <div className="stat-label">Your starters · proj</div>
+              <div className="stat-label">Starters · proj</div>
             </div>
             <div className="stat">
               <div className="stat-num muted">{report.fieldAverage.toFixed(0)}</div>
-              <div className="stat-label">Field average</div>
+              <div className="stat-label">Field avg</div>
             </div>
           </div>
-          <h3>Where you won (and didn't)</h3>
+          <h3>Position grades</h3>
           <table>
-            <thead><tr><th>Slot group</th><th className="num">You</th><th className="num">Field avg</th><th className="num">Edge</th></tr></thead>
+            <thead><tr><th>Group</th><th className="num">You</th><th className="num">Field avg</th><th className="num">Edge</th><th className="num">Grade</th></tr></thead>
             <tbody>
               {report.positionEdges.map((e) => {
                 const edge = e.mine - e.fieldAvg;
+                const g = gradeFor(edge);
                 return (
                   <tr key={e.position}>
                     <td>{e.position}</td>
                     <td className="num">{e.mine.toFixed(0)}</td>
                     <td className="num">{e.fieldAvg.toFixed(0)}</td>
-                    <td className={`num ${edge > 0 ? "good" : edge < 0 ? "bad" : ""}`}>
-                      {edge > 0 ? "+" : ""}{edge.toFixed(0)}
-                    </td>
+                    <td className={`num ${edge > 0 ? "good" : edge < 0 ? "bad" : ""}`}>{edge > 0 ? "+" : ""}{edge.toFixed(0)}</td>
+                    <td className={`num ${g.cls}`}><b>{g.letter}</b></td>
                   </tr>
                 );
               })}
@@ -346,9 +487,7 @@ function MockRoom() {
               <PlayerAvatar id={s.id} name={s.name} position={s.position} team={s.team} size={28} />
               <span className="player-line-name">
                 <b>{s.name}</b>
-                <span className="player-line-meta">
-                  <span className="muted">{s.slot}</span> <PosPill position={s.position} />
-                </span>
+                <span className="player-line-meta"><span className="muted">{s.slot}</span> <PosPill position={s.position} /></span>
               </span>
               <span className="num">{s.points.toFixed(0)}</span>
             </div>
@@ -373,7 +512,7 @@ export function Draft() {
         <button className={mode === "mock" ? "active" : ""} onClick={() => setMode("mock")}>Mock draft</button>
         <button className={mode === "live" ? "active" : ""} onClick={() => setMode("live")}>Draft day</button>
       </div>
-      {mode === "mock" ? <MockRoom /> : <LiveRoom />}
+      {mode === "mock" ? <MockRoom board={data?.rows ?? []} /> : <LiveRoom />}
       <div className="card">
         <h2>
           Cheat sheet <span className="muted">({data?.scoringLabel})</span>

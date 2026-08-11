@@ -6,7 +6,13 @@ import { fetchDraftResultsRaw } from "../connectors/yahoo/client.js";
 import { dig, yahooCollection } from "../connectors/yahoo/parse.js";
 import { buildLeagueContext, type LeagueContext } from "../engine/context.js";
 import { bestAvailable, buildCheatSheet, estimatePicksUntilNext } from "../engine/draft.js";
-import { evaluateMock, rosterSize, simulateOpponentPick, snakeTeamIndex } from "../engine/mock.js";
+import {
+  buildMarketOrder,
+  evaluateMock,
+  rosterSize,
+  simulateOpponentPick,
+  snakeTeamIndex,
+} from "../engine/mock.js";
 import { getPlayerIndex } from "../players.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -74,11 +80,9 @@ export async function registerDraftRoutes(app: FastifyInstance) {
     };
   });
 
-  /** Market board for opponent AI: ADP-proxy order over the draftable pool. */
+  /** Market board for opponent AI: FP consensus first, ADP proxy fallback. */
   const marketOrder = (ctx: LeagueContext): string[] =>
-    [...ctx.vor.keys()].sort(
-      (a, b) => (ctx.players.get(a)?.searchRank ?? 1e9) - (ctx.players.get(b)?.searchRank ?? 1e9),
-    );
+    buildMarketOrder(ctx.vor.keys(), ctx.players, ctx.fpRanks.size ? ctx.fpRanks : undefined);
 
   const mockCard = (ctx: LeagueContext, id: string) => {
     const p = ctx.players.get(id);
@@ -145,7 +149,7 @@ export async function registerDraftRoutes(app: FastifyInstance) {
         taken.add(pick);
       }
 
-      const done = picks.length >= total;
+      let done = picks.length >= total;
       const myPicks = picks.filter((_, i) => snakeTeamIndex(i, teamCount) === myIndex);
       const recentPicks = picks
         .slice(-6)
@@ -165,12 +169,16 @@ export async function registerDraftRoutes(app: FastifyInstance) {
             picksUntilNext: teamCount,
             limit: 8,
           });
+      // Board exhausted (or opponents ran out mid-loop): the draft is over
+      // even if the round count says otherwise.
+      if (!done && advice.length === 0) done = true;
 
       return {
         teamCount,
         mySlot,
         rounds,
         done,
+        slots: ctx.league.lineupSlots,
         round: Math.floor(picks.length / teamCount) + 1,
         overall: picks.length + 1,
         picks: picks.map((id, i) => ({
