@@ -47,8 +47,14 @@ Everything can be entered on the in-app **Setup** screen; environment variables 
 ### Connecting Yahoo (~10 minutes, one time)
 
 1. Go to [developer.yahoo.com/apps/create](https://developer.yahoo.com/apps/create/).
-2. Create an app: any name, **Confidential Client**, redirect URI = `<BASE_URL>/api/yahoo/callback`, API permission = **Fantasy Sports (Read)**.
-3. Paste the Client ID and Client Secret on the Setup screen and click **Connect Yahoo** — you'll bounce through Yahoo's consent page and land back connected.
+2. Create an app: any name, **Confidential Client**, API permission = **Fantasy Sports (Read)**.
+   Yahoo's form insists on an **https** redirect URI — enter your hosted URL
+   (`https://<your-app>.onrender.com/api/yahoo/callback`). Running locally? Enter it anyway;
+   local connects don't use it.
+3. Paste the Client ID and Client Secret on the Setup screen and click **Connect Yahoo**.
+   - **Hosted (https)**: you bounce through Yahoo's consent page and land back connected.
+   - **Local (http)**: a Yahoo tab opens and shows a short verification code after you
+     approve — paste it back into the Setup screen.
 4. The Setup screen then shows the refresh token to copy into `YAHOO_REFRESH_TOKEN` on Render so the connection survives redeploys.
 
 ## Deploying to Render

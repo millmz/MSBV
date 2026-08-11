@@ -10,8 +10,17 @@ import { HttpError } from "../../http.js";
 const AUTH_URL = "https://api.login.yahoo.com/oauth2/request_auth";
 const TOKEN_URL = "https://api.login.yahoo.com/oauth2/get_token";
 
+/**
+ * Yahoo's console only registers https redirect URIs, so a local http server
+ * can never receive the callback. Out-of-band mode ("oob") sidesteps that:
+ * Yahoo shows the user a verification code on screen to paste back into MSBV.
+ */
+export function useOob(): boolean {
+  return !getConfig().baseUrl.startsWith("https://");
+}
+
 export function redirectUri(): string {
-  return `${getConfig().baseUrl}/api/yahoo/callback`;
+  return useOob() ? "oob" : `${getConfig().baseUrl}/api/yahoo/callback`;
 }
 
 export function authorizeUrl(state: string): string {
