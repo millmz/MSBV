@@ -9,6 +9,17 @@ import { Draft } from "./pages/Draft.js";
 import { EdgeReport } from "./pages/EdgeReport.js";
 import { Ranks } from "./pages/Ranks.js";
 import { Connections } from "./pages/Connections.js";
+import {
+  IconDraft,
+  IconEdge,
+  IconHome,
+  IconLineup,
+  IconRanks,
+  IconSetup,
+  IconTrades,
+  IconWaivers,
+  LemonMark,
+} from "./icons.js";
 
 export type LeagueSummary = {
   id: string;
@@ -48,11 +59,12 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
   return (
     <div className="login-wrap">
       <form className="login-box" onSubmit={submit}>
-        <h1>
-          MSBV <span>Fantasy HQ</span>
-        </h1>
+        <div className="login-mark">
+          <LemonMark size={72} />
+        </div>
+        <h1>Lemon League</h1>
         <p className="tagline">Medium Stakes · Big Vibes</p>
-        <p className="stakes">Winner takes the bragging rights. Loser eats the lemon. 🍋</p>
+        <p className="stakes">Winner takes the bragging rights. Loser eats the lemon.</p>
         <input
           type="password"
           value={password}
@@ -72,14 +84,14 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
 }
 
 const TABS = [
-  { to: "/", icon: "🏠", label: "Home" },
-  { to: "/lineup", icon: "📋", label: "Lineup" },
-  { to: "/waivers", icon: "🔄", label: "Waivers" },
-  { to: "/trades", icon: "🤝", label: "Trades" },
-  { to: "/draft", icon: "🎯", label: "Draft" },
-  { to: "/ranks", icon: "📊", label: "Ranks" },
-  { to: "/edge", icon: "⚡", label: "Edge" },
-  { to: "/connections", icon: "⚙️", label: "Setup" },
+  { to: "/", icon: IconHome, label: "Home" },
+  { to: "/lineup", icon: IconLineup, label: "Lineup" },
+  { to: "/waivers", icon: IconWaivers, label: "Waivers" },
+  { to: "/trades", icon: IconTrades, label: "Trades" },
+  { to: "/draft", icon: IconDraft, label: "Draft" },
+  { to: "/ranks", icon: IconRanks, label: "Ranks" },
+  { to: "/edge", icon: IconEdge, label: "Edge" },
+  { to: "/connections", icon: IconSetup, label: "Setup" },
 ];
 
 export function App() {
@@ -122,11 +134,12 @@ export function App() {
     >
       <div className="app">
         <header className="topbar">
-          <div>
-            <div className="brand">
-              MSBV <span>HQ</span>
+          <div className="lockup">
+            <LemonMark size={30} />
+            <div>
+              <div className="brand">Lemon League</div>
+              <div className="topbar-tag">Medium Stakes · Big Vibes</div>
             </div>
-            <div className="topbar-tag">Medium Stakes · Big Vibes</div>
           </div>
           <div className="league-toggle">
             {leagues.map((l) => (
@@ -155,7 +168,9 @@ export function App() {
         <nav className="tabbar">
           {TABS.map((t) => (
             <NavLink key={t.to} to={t.to} end={t.to === "/"} className={({ isActive }) => (isActive ? "active" : "")}>
-              <span className="icon">{t.icon}</span>
+              <span className="icon">
+                <t.icon size={19} />
+              </span>
               {t.label}
             </NavLink>
           ))}

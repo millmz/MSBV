@@ -35,14 +35,12 @@
   --grad-lemon: linear-gradient(135deg, var(--lemon-bright), #ffb700);
   --glow-lemon: 0 6px 20px rgba(255, 200, 0, 0.35);
   --shadow-card: 0 1px 2px rgba(34, 39, 13, 0.05), 0 10px 30px rgba(34, 39, 13, 0.07);
-  --highlight: linear-gradient(transparent 58%, rgba(255, 200, 0, 0.6) 58%, rgba(255, 200, 0, 0.6) 92%, transparent 92%);
 
   /* shape + type */
   --r-s: 9px;
   --r-m: 13px;
   --r-l: 18px;
   --font-ui: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Anton", "Arial Narrow", -apple-system, sans-serif;
   font-size: 16px;
 }
 
@@ -82,21 +80,18 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   border-bottom: 1px solid var(--line);
   position: sticky; top: 0; z-index: 10;
 }
+.lockup { display: flex; align-items: center; gap: 10px; }
 .topbar .brand {
-  font-family: var(--font-display);
-  font-size: 1.35rem;
-  letter-spacing: 0.04em;
-  line-height: 1;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
   color: var(--ink);
-  background: var(--highlight);
-  padding: 0 4px;
 }
-.topbar .brand span { color: var(--ink-dim); font-size: 0.9em; }
 .topbar-tag {
   color: var(--ink-faint);
-  font-size: 0.6rem; font-weight: 700;
-  letter-spacing: 0.22em; text-transform: uppercase;
-  margin-top: 2px;
+  font-size: 0.58rem; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
 }
 @media (max-width: 520px) { .topbar-tag { display: none; } }
 
@@ -148,7 +143,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   background: rgba(255, 200, 0, 0.24);
   box-shadow: inset 0 -2px 0 var(--lemon);
 }
-.tabbar .icon { font-size: 1.3rem; line-height: 1.1; }
+.tabbar .icon { display: flex; align-items: center; justify-content: center; height: 20px; }
 
 /* --------------------------------------------------------------------------
    Cards
@@ -288,16 +283,12 @@ tr:last-child td { border-bottom: none; }
 .login-wrap::before { width: 360px; height: 360px; background: rgba(255, 214, 61, 0.4); top: -120px; right: -100px; }
 .login-wrap::after { width: 300px; height: 300px; background: rgba(31, 138, 65, 0.16); bottom: -110px; left: -90px; }
 .login-box { width: 100%; max-width: 350px; text-align: center; position: relative; z-index: 1; }
+.login-mark { display: flex; justify-content: center; margin-bottom: 20px; filter: drop-shadow(0 10px 28px rgba(255, 183, 0, 0.4)); }
 .login-box h1 {
-  font-family: var(--font-display);
-  font-size: 4.4rem; margin: 0; line-height: 1.05;
-  letter-spacing: 0.03em;
+  font-size: 2.3rem; margin: 0; line-height: 1.1;
+  font-weight: 800; letter-spacing: -0.03em;
   color: var(--ink);
-  background: var(--highlight);
-  padding: 0 10px;
-  display: inline-block;
 }
-.login-box h1 span { display: none; }
 .login-box .tagline {
   color: var(--rind); font-size: 0.68rem; font-weight: 800;
   text-transform: uppercase; letter-spacing: 0.34em;
@@ -307,6 +298,29 @@ tr:last-child td { border-bottom: none; }
   color: var(--ink-dim); font-size: 0.85rem; margin: 0 0 24px;
 }
 .login-box button.primary { width: 100%; }
+
+/* --------------------------------------------------------------------------
+   Players
+   -------------------------------------------------------------------------- */
+
+.avatar {
+  border-radius: 50%; object-fit: cover; flex: none;
+  background: var(--well); border: 1px solid var(--line);
+}
+.avatar-fb {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-dim); font-weight: 700; letter-spacing: 0.02em;
+}
+.player-line { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.player-line-name { flex: 1; min-width: 0; line-height: 1.25; }
+.player-line-name > b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.92rem; }
+.player-line-meta { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; margin-top: 1px; }
+.cell-player { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+.statrow { display: flex; align-items: center; gap: 22px; margin: 12px 0 4px; }
+.stat-num { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat-label { font-size: 0.68rem; font-weight: 700; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+.stat-vs { color: var(--ink-faint); font-size: 0.8rem; font-weight: 600; }
 
 /* --------------------------------------------------------------------------
    States

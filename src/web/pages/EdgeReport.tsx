@@ -41,7 +41,7 @@ export function EdgeReport() {
   return (
     <>
       <div className="card">
-        <h2>⚡ Platform mispricings</h2>
+        <h2>Platform mispricings</h2>
         <p className="muted">
           Your leaguemates act on the platform's default ranks. These are the gaps between those
           ranks and the consensus blend — visible only to you.

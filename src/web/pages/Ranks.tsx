@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   LoadingOrError,
   NoLeague,
+  PlayerAvatar,
   PosPill,
   useLeagueData,
   WeekPoints,
@@ -107,14 +108,19 @@ export function Ranks() {
                   <tr key={r.id}>
                     <td className="muted">{i + 1}</td>
                     <td>
-                      <PosPill position={r.position} /> <b>{r.name}</b>{" "}
-                      <span className="muted">{r.team}</span>
-                      {r.injuryStatus && (
-                        <span className="warn">
-                          {" "}
-                          {r.injuryStatus === "Questionable" ? "Q" : r.injuryStatus}
+                      <span className="cell-player">
+                        <PlayerAvatar id={r.id} name={r.name} position={r.position} team={r.team} size={26} />
+                        <span>
+                          <b>{r.name}</b> <span className="muted">{r.team}</span>{" "}
+                          <PosPill position={r.position} />
+                          {r.injuryStatus && (
+                            <span className="warn">
+                              {" "}
+                              {r.injuryStatus === "Questionable" ? "Q" : r.injuryStatus}
+                            </span>
+                          )}
                         </span>
-                      )}
+                      </span>
                     </td>
                     {view === "ros" ? (
                       <>

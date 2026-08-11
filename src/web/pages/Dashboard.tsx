@@ -1,7 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useLeagues } from "../App.js";
-import { LoadingOrError, useLeagueData } from "../components.js";
+import { LoadingOrError, PlayerAvatar, useLeagueData } from "../components.js";
+import { LemonGlyph } from "../icons.js";
 
 type Overview = {
   league: { name: string; week: number; scoringLabel: string; syncedAt: string };
@@ -20,7 +21,7 @@ export function Dashboard() {
   if (leagues.length === 0) {
     return (
       <div className="card">
-        <h2>Welcome to MSBV 🍋</h2>
+        <h2>Welcome to Lemon League</h2>
         <p className="muted">
           No leagues connected yet. Head to <Link to="/connections">Setup</Link> to link your ESPN
           and Yahoo leagues — a few minutes each, then everything here lights up.
@@ -49,14 +50,24 @@ export function Dashboard() {
           </p>
         )}
         {gs && (
-          <p>
-            <span className={postureClass}>
-              {gs.myProjected.toFixed(1)}
-              {gs.oppProjected !== undefined && ` — ${gs.oppProjected.toFixed(1)}`} projected
-            </span>
-            <br />
-            <span className="muted">{gs.explanation}</span>
-          </p>
+          <>
+            <div className="statrow">
+              <div className="stat">
+                <div className={`stat-num ${postureClass}`}>{gs.myProjected.toFixed(1)}</div>
+                <div className="stat-label">You · projected</div>
+              </div>
+              {gs.oppProjected !== undefined && (
+                <>
+                  <div className="stat-vs">vs</div>
+                  <div className="stat">
+                    <div className="stat-num">{gs.oppProjected.toFixed(1)}</div>
+                    <div className="stat-label">Opponent · projected</div>
+                  </div>
+                </>
+              )}
+            </div>
+            <p className="muted" style={{ marginTop: 6 }}>{gs.explanation}</p>
+          </>
         )}
         {data.lineupChanges > 0 && (
           <p>
@@ -71,10 +82,16 @@ export function Dashboard() {
         <div className="card">
           <h2>Injury watch</h2>
           {data.injuries.map((p) => (
-            <p key={p.id} style={{ margin: "4px 0" }}>
-              <span className={`pill pos-${p.position}`}>{p.position}</span> {p.name}{" "}
+            <div key={p.id} className="player-line">
+              <PlayerAvatar id={p.id} name={p.name} position={p.position} />
+              <span className="player-line-name">
+                <b>{p.name}</b>
+                <span className="player-line-meta">
+                  <span className={`pill pos-${p.position}`}>{p.position}</span>
+                </span>
+              </span>
               <span className={p.status === "Questionable" ? "warn" : "bad"}>{p.status}</span>
-            </p>
+            </div>
           ))}
         </div>
       )}
@@ -91,7 +108,10 @@ export function Dashboard() {
                 <td>
                   {t.name}
                   {i === data.standings.length - 1 && data.standings.length > 1 && (
-                    <span title="current lemon seat — lose the league, eat the lemon"> 🍋</span>
+                    <span title="current lemon seat — lose the league, eat the lemon">
+                      {" "}
+                      <LemonGlyph size={13} />
+                    </span>
                   )}
                 </td>
                 <td className="num">{t.record}</td>

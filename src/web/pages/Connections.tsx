@@ -486,9 +486,9 @@ export function Connections() {
       <DataHealth />
       <div className="card">
         <h2>Your weekly rhythm</h2>
-        <p className="muted" style={{ margin: "4px 0" }}>🗓 <b>Tuesday night</b> — Waivers tab before claims process: top targets + who to drop.</p>
-        <p className="muted" style={{ margin: "4px 0" }}>🗓 <b>Wednesday</b> — Edge tab: buy-low / sell-high trades while the week is young.</p>
-        <p className="muted" style={{ margin: "4px 0" }}>🗓 <b>Sunday morning</b> — Lineup tab for final start/sit with fresh injury statuses.</p>
+        <p className="muted" style={{ margin: "4px 0" }}><b>Tuesday night</b> — Waivers tab before claims process: top targets + who to drop.</p>
+        <p className="muted" style={{ margin: "4px 0" }}><b>Wednesday</b> — Edge tab: buy-low / sell-high trades while the week is young.</p>
+        <p className="muted" style={{ margin: "4px 0" }}><b>Sunday morning</b> — Lineup tab for final start/sit with fresh injury statuses.</p>
       </div>
     </>
   );
