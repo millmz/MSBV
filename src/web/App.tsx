@@ -52,7 +52,7 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
           MSBV <span>Fantasy HQ</span>
         </h1>
         <p className="tagline">Medium Stakes · Big Vibes</p>
-        <p className="muted">Enter the app password</p>
+        <p className="stakes">Winner takes the bragging rights. Loser eats the lemon. 🍋</p>
         <input
           type="password"
           value={password}

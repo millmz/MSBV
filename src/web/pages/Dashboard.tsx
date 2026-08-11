@@ -20,7 +20,7 @@ export function Dashboard() {
   if (leagues.length === 0) {
     return (
       <div className="card">
-        <h2>Welcome to MSBV 🏈</h2>
+        <h2>Welcome to MSBV 🍋</h2>
         <p className="muted">
           No leagues connected yet. Head to <Link to="/connections">Setup</Link> to link your ESPN
           and Yahoo leagues — a few minutes each, then everything here lights up.
@@ -86,9 +86,14 @@ export function Dashboard() {
             <tr><th>Team</th><th className="num">Record</th><th className="num">PF</th></tr>
           </thead>
           <tbody>
-            {data.standings.map((t) => (
-              <tr key={t.id} style={data.myTeam && t.name === data.myTeam.name ? { color: "var(--accent)" } : undefined}>
-                <td>{t.name}</td>
+            {data.standings.map((t, i) => (
+              <tr key={t.id} style={data.myTeam && t.name === data.myTeam.name ? { fontWeight: 700 } : undefined}>
+                <td>
+                  {t.name}
+                  {i === data.standings.length - 1 && data.standings.length > 1 && (
+                    <span title="current lemon seat — lose the league, eat the lemon"> 🍋</span>
+                  )}
+                </td>
                 <td className="num">{t.record}</td>
                 <td className="num">{t.pointsFor}</td>
               </tr>

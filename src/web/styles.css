@@ -1,38 +1,41 @@
 /* ==========================================================================
-   MSBV "Big Vibes" design system
-   Medium Stakes, Big Vibes — night game under the lights.
-   Tokens first; every component reads from them. Dark-only by design.
+   MSBV "Sour Loser" design system
+   Medium Stakes, Big Vibes — and the loser eats a lemon.
+   Bright citrus light theme: lemon is the brand, leaf green is good news,
+   blood orange is bad news. Tokens first; components read tokens only.
    ========================================================================== */
 
 :root {
-  /* field — page + surface stack, deep pine green */
-  --field: #070e0a;
-  --surface: #0f1a13;
-  --surface-2: #15231a;
-  --surface-3: #1b2d21;
-  --line: rgba(158, 224, 184, 0.13);
-  --line-strong: rgba(158, 224, 184, 0.28);
+  /* grounds — pith white with a faint lemon warmth */
+  --pith: #fffcf2;
+  --card: #ffffff;
+  --well: #faf5e4;
+  --line: #ebe4cd;
+  --line-strong: #d8cfae;
 
-  /* ink */
-  --ink: #edf6ef;
-  --ink-dim: #97ac9e;
-  --ink-faint: #64796c;
+  /* ink — olive-biased neutrals, never pure black */
+  --ink: #23280e;
+  --ink-dim: #6e7257;
+  --ink-faint: #a3a58b;
 
-  /* brand */
-  --turf: #2fe382;         /* primary: electric turf green */
-  --lime: #a8f24e;         /* gradient partner */
-  --hype: #ffc247;         /* celebration gold */
+  /* citrus */
+  --lemon: #ffc800;         /* the brand: fills, highlights, primary buttons */
+  --lemon-bright: #ffe24d;  /* gradient partner */
+  --rind: #8f6b00;          /* lemon at text-contrast: links, accents on white */
+  --leaf: #1f8a41;          /* good */
+  --tangerine: #d9700f;     /* warn */
+  --bitter: #d8402c;        /* bad — blood orange for the lemon-eaters */
 
-  /* semantic */
-  --good: #2fe382;
-  --warn: #ffc247;
-  --bad: #ff6f5e;
+  /* semantic aliases */
+  --good: var(--leaf);
+  --warn: var(--tangerine);
+  --bad: var(--bitter);
 
   /* effects */
-  --grad-brand: linear-gradient(100deg, var(--turf) 10%, var(--lime) 55%, var(--hype) 100%);
-  --grad-button: linear-gradient(135deg, #29d97a, #8fe94a);
-  --glow-turf: 0 4px 24px rgba(47, 227, 130, 0.28);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.22);
+  --grad-lemon: linear-gradient(135deg, var(--lemon-bright), #ffb700);
+  --glow-lemon: 0 6px 20px rgba(255, 200, 0, 0.35);
+  --shadow-card: 0 1px 2px rgba(34, 39, 13, 0.05), 0 10px 30px rgba(34, 39, 13, 0.07);
+  --highlight: linear-gradient(transparent 58%, rgba(255, 200, 0, 0.6) 58%, rgba(255, 200, 0, 0.6) 92%, transparent 92%);
 
   /* shape + type */
   --r-s: 9px;
@@ -50,20 +53,19 @@ body {
   color: var(--ink);
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
-  /* the field at night: stadium glow up top, faint yard lines all the way down */
+  /* morning sun over the pith */
   background:
-    radial-gradient(120% 45% at 50% -8%, rgba(47, 227, 130, 0.11), transparent 60%),
-    repeating-linear-gradient(180deg, transparent 0 95px, rgba(233, 255, 240, 0.022) 95px 96px),
-    var(--field);
+    radial-gradient(110% 40% at 50% -6%, rgba(255, 200, 0, 0.16), transparent 60%),
+    var(--pith);
   background-attachment: fixed;
 }
 
-::selection { background: rgba(47, 227, 130, 0.32); }
+::selection { background: rgba(255, 200, 0, 0.45); }
 
-a { color: var(--turf); text-decoration: none; }
+a { color: var(--rind); font-weight: 600; text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
-:focus-visible { outline: 2px solid var(--turf); outline-offset: 2px; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--rind); outline-offset: 2px; border-radius: 4px; }
 
 /* --------------------------------------------------------------------------
    App shell
@@ -74,7 +76,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .topbar {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 18px;
-  background: rgba(9, 17, 12, 0.8);
+  background: rgba(255, 253, 245, 0.85);
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
   border-bottom: 1px solid var(--line);
@@ -85,15 +87,14 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   font-size: 1.35rem;
   letter-spacing: 0.04em;
   line-height: 1;
-  background: var(--grad-brand);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--ink);
+  background: var(--highlight);
+  padding: 0 4px;
 }
-.topbar .brand span { color: var(--ink-dim); -webkit-text-fill-color: var(--ink-dim); font-size: 0.9em; }
+.topbar .brand span { color: var(--ink-dim); font-size: 0.9em; }
 .topbar-tag {
   color: var(--ink-faint);
-  font-size: 0.6rem; font-weight: 600;
+  font-size: 0.6rem; font-weight: 700;
   letter-spacing: 0.22em; text-transform: uppercase;
   margin-top: 2px;
 }
@@ -101,7 +102,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .league-toggle {
   margin-left: auto; display: flex; gap: 4px;
-  background: var(--surface-2);
+  background: var(--well);
   border: 1px solid var(--line);
   border-radius: 999px; padding: 3px;
 }
@@ -113,8 +114,8 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   transition: color 0.15s, background 0.15s;
 }
 .league-toggle button.active {
-  color: #06130c; background: var(--grad-button); font-weight: 800;
-  box-shadow: var(--glow-turf);
+  color: var(--ink); background: var(--grad-lemon); font-weight: 800;
+  box-shadow: var(--glow-lemon);
 }
 
 .content { flex: 1; padding: 18px 16px; max-width: 900px; width: 100%; margin: 0 auto; padding-bottom: 108px; }
@@ -125,12 +126,12 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   left: 50%; transform: translateX(-50%);
   width: min(560px, calc(100% - 20px));
   display: flex; justify-content: space-around;
-  background: rgba(14, 24, 17, 0.88);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   border: 1px solid var(--line);
   border-radius: var(--r-l);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 12px 32px rgba(34, 39, 13, 0.14);
   padding: 6px;
   z-index: 10;
 }
@@ -143,9 +144,9 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 }
 .tabbar a:hover { color: var(--ink); text-decoration: none; }
 .tabbar a.active {
-  color: var(--turf);
-  background: rgba(47, 227, 130, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  background: rgba(255, 200, 0, 0.24);
+  box-shadow: inset 0 -2px 0 var(--lemon);
 }
 .tabbar .icon { font-size: 1.3rem; line-height: 1.1; }
 
@@ -154,10 +155,10 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
    -------------------------------------------------------------------------- */
 
 .card {
-  background: linear-gradient(180deg, var(--surface), #0c1610);
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--r-l);
-  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow-card);
   padding: 16px 18px;
   margin-bottom: 16px;
 }
@@ -169,7 +170,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
   content: "";
   display: inline-block; vertical-align: -2px;
   width: 4px; height: 15px; border-radius: 3px;
-  background: var(--grad-brand);
+  background: var(--grad-lemon);
   margin-right: 9px;
 }
 .card h3 {
@@ -191,27 +192,27 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
    -------------------------------------------------------------------------- */
 
 button.primary {
-  background: var(--grad-button); color: #06130c; border: none;
+  background: var(--grad-lemon); color: var(--ink); border: none;
   border-radius: var(--r-m); padding: 11px 18px;
   font-family: inherit; font-weight: 800; font-size: 0.95rem; letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: var(--glow-turf), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: var(--glow-lemon), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   transition: transform 0.12s, box-shadow 0.12s, filter 0.12s;
 }
-button.primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
-button.primary:active { transform: translateY(0); filter: brightness(0.95); }
+button.primary:hover { transform: translateY(-1px); filter: brightness(1.03); }
+button.primary:active { transform: translateY(0); filter: brightness(0.97); }
 button.primary:disabled { opacity: 0.45; cursor: default; transform: none; box-shadow: none; filter: none; }
 
 button.ghost {
-  background: rgba(47, 227, 130, 0.07); color: var(--turf);
-  border: 1px solid rgba(47, 227, 130, 0.32); border-radius: var(--r-m);
-  padding: 8px 14px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 0.9rem;
+  background: rgba(255, 200, 0, 0.1); color: var(--rind);
+  border: 1px solid rgba(201, 151, 0, 0.45); border-radius: var(--r-m);
+  padding: 8px 14px; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 0.9rem;
   transition: background 0.15s, border-color 0.15s;
 }
-button.ghost:hover { background: rgba(47, 227, 130, 0.14); border-color: rgba(47, 227, 130, 0.5); }
+button.ghost:hover { background: rgba(255, 200, 0, 0.2); border-color: var(--rind); }
 
 input, select {
-  width: 100%; background: #0a130e; border: 1px solid var(--line);
+  width: 100%; background: var(--card); border: 1px solid var(--line-strong);
   color: var(--ink); border-radius: var(--r-m); padding: 11px 13px;
   font-family: inherit; font-size: 0.95rem;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -219,14 +220,14 @@ input, select {
 input::placeholder { color: var(--ink-faint); }
 input[type="file"] { padding: 8px; color: var(--ink-dim); }
 input[type="file"]::file-selector-button {
-  background: rgba(47, 227, 130, 0.07); color: var(--turf);
-  border: 1px solid rgba(47, 227, 130, 0.32); border-radius: var(--r-s);
+  background: rgba(255, 200, 0, 0.12); color: var(--rind);
+  border: 1px solid rgba(201, 151, 0, 0.45); border-radius: var(--r-s);
   padding: 7px 12px; margin-right: 12px; cursor: pointer;
-  font-family: inherit; font-weight: 600; font-size: 0.85rem;
+  font-family: inherit; font-weight: 700; font-size: 0.85rem;
 }
 input:focus, select:focus {
-  outline: none; border-color: var(--turf);
-  box-shadow: 0 0 0 3px rgba(47, 227, 130, 0.16);
+  outline: none; border-color: var(--lemon);
+  box-shadow: 0 0 0 3px rgba(255, 200, 0, 0.28);
 }
 label {
   display: block; font-size: 0.72rem; font-weight: 700;
@@ -246,7 +247,7 @@ th {
 }
 td { padding: 9px 8px; border-bottom: 1px solid var(--line); }
 tbody tr { transition: background 0.1s; }
-tbody tr:hover { background: rgba(255, 255, 255, 0.025); }
+tbody tr:hover { background: rgba(255, 200, 0, 0.07); }
 tr:last-child td { border-bottom: none; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -258,44 +259,52 @@ tr:last-child td { border-bottom: none; }
   display: inline-block; padding: 2px 9px; border-radius: 999px;
   font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em;
   border: 1px solid var(--line);
-  background: var(--surface-2);
+  background: var(--well);
 }
-.pill.pos-QB  { color: #e2a9f5; background: rgba(226, 169, 245, 0.12); border-color: rgba(226, 169, 245, 0.28); }
-.pill.pos-RB  { color: #6fe9a6; background: rgba(111, 233, 166, 0.11); border-color: rgba(111, 233, 166, 0.28); }
-.pill.pos-WR  { color: #79c8f7; background: rgba(121, 200, 247, 0.11); border-color: rgba(121, 200, 247, 0.28); }
-.pill.pos-TE  { color: #f7cc76; background: rgba(247, 204, 118, 0.11); border-color: rgba(247, 204, 118, 0.28); }
-.pill.pos-K   { color: #c6cfc9; background: rgba(198, 207, 201, 0.1);  border-color: rgba(198, 207, 201, 0.25); }
-.pill.pos-DST, .pill.pos-DEF { color: #f5a184; background: rgba(245, 161, 132, 0.11); border-color: rgba(245, 161, 132, 0.28); }
-.pill.up   { color: var(--good); background: rgba(47, 227, 130, 0.12); border-color: rgba(47, 227, 130, 0.3); }
-.pill.down { color: var(--bad); background: rgba(255, 111, 94, 0.12); border-color: rgba(255, 111, 94, 0.3); }
+.pill.pos-QB  { color: #7d3bb5; background: rgba(125, 59, 181, 0.1);  border-color: rgba(125, 59, 181, 0.3); }
+.pill.pos-RB  { color: #1f8a41; background: rgba(31, 138, 65, 0.1);   border-color: rgba(31, 138, 65, 0.3); }
+.pill.pos-WR  { color: #1f6fbf; background: rgba(31, 111, 191, 0.1);  border-color: rgba(31, 111, 191, 0.3); }
+.pill.pos-TE  { color: #a4670b; background: rgba(196, 138, 24, 0.14); border-color: rgba(164, 103, 11, 0.35); }
+.pill.pos-K   { color: #63665a; background: rgba(99, 102, 90, 0.1);   border-color: rgba(99, 102, 90, 0.3); }
+.pill.pos-DST, .pill.pos-DEF { color: #b35233; background: rgba(179, 82, 51, 0.1); border-color: rgba(179, 82, 51, 0.3); }
+.pill.up   { color: var(--good); background: rgba(31, 138, 65, 0.1);  border-color: rgba(31, 138, 65, 0.3); }
+.pill.down { color: var(--bad); background: rgba(216, 64, 44, 0.1);  border-color: rgba(216, 64, 44, 0.3); }
 
 /* --------------------------------------------------------------------------
-   Login — the brand moment
+   Login — the lemon moment
    -------------------------------------------------------------------------- */
 
 .login-wrap {
   display: grid; place-items: center; min-height: 100dvh; padding: 20px;
   background:
-    radial-gradient(70% 45% at 50% 30%, rgba(47, 227, 130, 0.14), transparent 65%),
-    repeating-linear-gradient(180deg, transparent 0 95px, rgba(233, 255, 240, 0.022) 95px 96px),
-    var(--field);
+    radial-gradient(70% 45% at 50% 25%, rgba(255, 200, 0, 0.22), transparent 65%),
+    var(--pith);
+  position: relative; overflow: hidden;
 }
-.login-box { width: 100%; max-width: 350px; text-align: center; }
+/* out-of-focus citrus in the corners */
+.login-wrap::before, .login-wrap::after {
+  content: ""; position: absolute; border-radius: 50%; filter: blur(60px); z-index: 0;
+}
+.login-wrap::before { width: 360px; height: 360px; background: rgba(255, 214, 61, 0.4); top: -120px; right: -100px; }
+.login-wrap::after { width: 300px; height: 300px; background: rgba(31, 138, 65, 0.16); bottom: -110px; left: -90px; }
+.login-box { width: 100%; max-width: 350px; text-align: center; position: relative; z-index: 1; }
 .login-box h1 {
   font-family: var(--font-display);
-  font-size: 4.4rem; margin: 0; line-height: 1;
+  font-size: 4.4rem; margin: 0; line-height: 1.05;
   letter-spacing: 0.03em;
-  background: var(--grad-brand);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 6px 30px rgba(47, 227, 130, 0.35));
+  color: var(--ink);
+  background: var(--highlight);
+  padding: 0 10px;
+  display: inline-block;
 }
 .login-box h1 span { display: none; }
 .login-box .tagline {
-  color: var(--hype); font-size: 0.68rem; font-weight: 700;
+  color: var(--rind); font-size: 0.68rem; font-weight: 800;
   text-transform: uppercase; letter-spacing: 0.34em;
-  margin: 10px 0 26px;
+  margin: 12px 0 4px;
+}
+.login-box .stakes {
+  color: var(--ink-dim); font-size: 0.85rem; margin: 0 0 24px;
 }
 .login-box button.primary { width: 100%; }
 
@@ -306,13 +315,14 @@ tr:last-child td { border-bottom: none; }
 .empty {
   text-align: center; color: var(--ink-dim); padding: 44px 16px;
   border: 1px dashed var(--line-strong); border-radius: var(--r-l);
+  background: var(--card);
 }
 
 .spinner { text-align: center; color: var(--ink-dim); padding: 34px; }
 .spinner::after {
   content: ""; display: block; margin: 14px auto 0;
   width: 26px; height: 26px; border-radius: 50%;
-  border: 3px solid var(--line-strong); border-top-color: var(--turf);
+  border: 3px solid var(--line-strong); border-top-color: var(--lemon);
   animation: msbv-spin 0.8s linear infinite;
 }
 @keyframes msbv-spin { to { transform: rotate(360deg); } }
@@ -325,7 +335,7 @@ tr:last-child td { border-bottom: none; }
    Scrollbar
    -------------------------------------------------------------------------- */
 
-* { scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 *::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 99px; }
+*::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 99px; }
 *::-webkit-scrollbar-track { background: transparent; }
