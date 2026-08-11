@@ -175,6 +175,42 @@ describe("league API end-to-end", () => {
     expect(bellCow.weekPosRank).toBe(3);
   });
 
+  it("mock draft: advance simulates opponents and evaluate ranks the room", async () => {
+    const start = await app.inject({
+      method: "POST",
+      url: "/api/league/espn:99/mock/advance",
+      payload: { teamCount: 4, mySlot: 1, picks: [] },
+    });
+    expect(start.statusCode).toBe(200);
+    const s = start.json();
+    expect(s.done).toBe(false);
+    expect(s.advice.length).toBeGreaterThan(0);
+
+    const first = s.advice[0].id;
+    const after = await app.inject({
+      method: "POST",
+      url: "/api/league/espn:99/mock/advance",
+      payload: { teamCount: 4, mySlot: 1, rounds: s.rounds, picks: [], myPickId: first },
+    });
+    expect(after.statusCode).toBe(200);
+    const a = after.json();
+    expect(a.myRoster.map((p: { id: string }) => p.id)).toContain(first);
+    // opponents drafted the picks between my turns, snake order
+    expect(a.picks.length).toBeGreaterThan(1);
+    expect(new Set(a.picks.map((p: { id: string }) => p.id)).size).toBe(a.picks.length);
+
+    const evalRes = await app.inject({
+      method: "POST",
+      url: "/api/league/espn:99/mock/evaluate",
+      payload: { teamCount: 4, mySlot: 1, picks: a.picks.map((p: { id: string }) => p.id) },
+    });
+    expect(evalRes.statusCode).toBe(200);
+    const rep = evalRes.json();
+    expect(rep.teams).toHaveLength(4);
+    expect(rep.myRank).toBeGreaterThanOrEqual(1);
+    expect(rep.positionEdges.length).toBeGreaterThan(0);
+  });
+
   it("league player search scopes to the league context", async () => {
     const res = await app.inject({
       method: "GET",
