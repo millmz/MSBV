@@ -150,10 +150,21 @@ export function bestAvailable(opts: {
   recentPicks?: Position[];
   /** Picks until my next turn (tier-cliff urgency window). */
   picksUntilNext?: number;
+  /** My roster spots still to fill — gates the K/DST endgame window. */
+  roundsLeft?: number;
+  /** Market rank (FantasyPros ECR / ADP) per player, for timing discounts. */
+  market?: Map<string, number>;
+  /** 1-based overall pick about to be made. */
+  currentOverall?: number;
   limit?: number;
 }): DraftAdvice[] {
-  const { league, vor, players, taken, myPicks, recentPicks = [], picksUntilNext = 10 } = opts;
+  const { league, vor, players, taken, myPicks, recentPicks = [], picksUntilNext = 10, roundsLeft, market, currentOverall } = opts;
   const needs = rosterNeeds(league, myPicks, players);
+  // Real rooms take the first DST around pick 100+ and kickers later still
+  // (FantasyPros ADP): K/DST only become live advice when the only spots
+  // left to fill are theirs, plus one spare round.
+  const kdNeeded = (needs.K > 0 ? 1 : 0) + (needs.DST > 0 ? 1 : 0);
+  const kdEndgame = roundsLeft !== undefined && roundsLeft <= kdNeeded + 1;
 
   // Players left per tier per position (for cliff detection).
   const remainingByPos = new Map<Position, VorEntry[]>();
@@ -177,17 +188,42 @@ export function bestAvailable(opts: {
     for (const entry of list.slice(0, 12)) {
       const reasons: string[] = [];
       const needRemaining = needs[pos];
-      // Need factor: full value while you still need the position, discounted after.
-      const needFactor = needRemaining > 0 ? 1 : pos === "K" || pos === "DST" ? 0.1 : 0.55;
+      const isKD = pos === "K" || pos === "DST";
+      // Need factor: full value while you still need the position, discounted
+      // after — except K/DST, which are worthless outside the endgame window.
+      const needFactor = isKD
+        ? needRemaining > 0 && kdEndgame
+          ? 1
+          : 0.02
+        : needRemaining > 0
+          ? 1
+          : 0.55;
       let score = Math.max(entry.vor, 0) * needFactor;
+      if (isKD && !kdEndgame) {
+        reasons.push(`${pos} is an endgame pick — burn a late round on him, not this one.`);
+      }
+      if (isKD && kdEndgame && needRemaining > 0) {
+        reasons.push(`Time to fill ${pos} — only ${roundsLeft} rounds left.`);
+      }
+
+      const marketRank = market?.get(entry.playerId);
+      if (
+        !isKD &&
+        marketRank !== undefined &&
+        currentOverall !== undefined &&
+        marketRank > currentOverall + picksUntilNext + 6
+      ) {
+        score *= 0.65;
+        reasons.push(`Market has him around #${marketRank} — likely still there on your next turn.`);
+      }
 
       const sameTierLeft = list.filter((e) => e.tier === entry.tier).length;
-      if (sameTierLeft <= 2 && needRemaining > 0 && entry.tier <= 5) {
+      if (sameTierLeft <= 2 && needRemaining > 0 && entry.tier <= 5 && !isKD) {
         score += 6;
         reasons.push(`Last ${sameTierLeft === 1 ? "player" : "two"} in ${pos} tier ${entry.tier} — cliff behind him.`);
       }
       const nextTierDrop =
-        list.find((e) => e.tier === entry.tier + 1) !== undefined && sameTierLeft <= picksUntilNext
+        !isKD && list.find((e) => e.tier === entry.tier + 1) !== undefined && sameTierLeft <= picksUntilNext
           ? entry.points - (list.find((e) => e.tier === entry.tier + 1)?.points ?? entry.points)
           : 0;
       if (nextTierDrop >= 15) {
@@ -195,7 +231,7 @@ export function bestAvailable(opts: {
         reasons.push(`~${nextTierDrop.toFixed(0)} points fall to the next tier; he likely won't make it back to you.`);
       }
       const run = runCounts.get(pos) ?? 0;
-      if (run >= 3 && needRemaining > 0) {
+      if (run >= 3 && needRemaining > 0 && !isKD) {
         score += 3;
         reasons.push(`${pos} run in progress (${run} of the last 6 picks).`);
       }
