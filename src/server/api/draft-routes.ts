@@ -167,6 +167,9 @@ export async function registerDraftRoutes(app: FastifyInstance) {
             myPicks,
             recentPicks,
             picksUntilNext: teamCount,
+            roundsLeft: rounds - myPicks.length,
+            market: new Map(market.map((id, i) => [id, i + 1])),
+            currentOverall: picks.length + 1,
             limit: 8,
           });
       // Board exhausted (or opponents ran out mid-loop): the draft is over
@@ -262,6 +265,11 @@ export async function registerDraftRoutes(app: FastifyInstance) {
       Math.max(ctx.league.teams.length, 1),
     );
 
+    const liveMarket = buildMarketOrder(
+      ctx.vor.keys(),
+      ctx.players,
+      ctx.fpRanks.size ? ctx.fpRanks : undefined,
+    );
     const advice = bestAvailable({
       league: ctx.league,
       blends: ctx.seasonBlends,
@@ -271,6 +279,9 @@ export async function registerDraftRoutes(app: FastifyInstance) {
       myPicks,
       recentPicks,
       picksUntilNext,
+      roundsLeft: rosterSize(ctx.league) - myPicks.length,
+      market: new Map(liveMarket.map((id, i) => [id, i + 1])),
+      currentOverall: picks.length + 1,
       limit: 10,
     });
 
